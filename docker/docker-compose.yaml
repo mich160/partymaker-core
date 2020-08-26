@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+
+  db:
+    image: postgres:9.6.19
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: example
+    volumes:
+      - db_data:/var/lib/postgres
+
+  adminer:
+    depends_on:
+      - db
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+volumes:
+  db_data: {}
