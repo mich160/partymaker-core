@@ -1,285 +1,350 @@
 package view.planning;
 
-import db.DBConnectionProvider;
-import db.DBInitializer;
-import db.H2ConnectionProvider;
-import model.Thing;
-import model.User;
-import org.jdatepicker.JDatePicker;
-import view.exceptions.NotImplementedException;
-import view.planning.components.JLocalDatePicker;
-import view.planning.components.JTimeSpinner;
+import view.planning.components.JDateTimePicker;
+import view.planning.modelview.UserView;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.time.LocalDate;
+import java.text.DateFormat;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.HashMap;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class EventPlanningWindow extends JFrame implements EventPlanning {
-    private final JPanel timePlanningPanel;
-    private final JLocalDatePicker eventDatePicker;
-    private final JTimeSpinner eventTimeSpinner;
-    private final JPanel detailsPanel;
-    private final JTextField titleField;
-    private final JTextArea descriptionArea;
-    private final JButton guestsButton;
-    private final JButton saveEventButton;
+    private enum Column {
+        FIRST(0.15),
+        SECOND(0.15),
+        THIRD(0.7);
 
-    private final JLabel currentDateTime;
+        private final double weight;
+
+        Column(double weight) {
+            this.weight = weight;
+        }
+    }
+
+    private enum Row {
+        FIRST(0.04),
+        SECOND(0.835),
+        THIRD(0.03),
+        FOURTH(0.03),
+        FIFTH(0.035);
+
+        private final double weight;
+
+        Row(double weight) {
+            this.weight = weight;
+        }
+    }
+
+    private final JTextField eventName;
+    private final JDateTimePicker dateTimePicker;
+    private final DefaultListModel<String> userListModel;
+    private final JList<String> userList;
+    private final JList<String> thingList;
     private final JTextArea summaryText;
-    private final JScrollPane summaryScrollPane;
-    private final JPanel summaryPanel;
+    private Runnable onSave;
 
-    private final JLabel personNameLabel;
-    private final JTextField personNameTextField;
-    private final JLabel personSurnameLabel;
-    private final JTextField personSurnameTextField;
-    private final JLabel thingNameLabel;
-    private final JTextField thingNameTextField;
-    private final JButton addingButton;
-    private final JPanel addingPanel;
+    private final LinkedHashMap<String, DefaultListModel<String>> dataMap = createDataMap();
 
-    private final DBConnectionProvider dbConnectionProvider;
-    private final Connection connection;
-    private final DBInitializer dbInitializer;
-
-    public EventPlanningWindow() throws HeadlessException, SQLException {
+    public EventPlanningWindow() throws HeadlessException {
         super("Baula Event Planning");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setBounds(100, 100, 505, 300);
+        setBounds(100, 100, 605, 300);
         setResizable(false);
-        setLayout(new BorderLayout());
+        setLayout(new GridBagLayout());
 
-        eventDatePicker = createEventDatePicker();
-        eventTimeSpinner = createEventTimeSpinner();
-        timePlanningPanel = createTimePlanningPanel(eventDatePicker, eventTimeSpinner);
-        add(timePlanningPanel, BorderLayout.WEST);
+        eventName = createEventNameTextField();
+        add(eventName, createGridBagConstraints(Column.FIRST.weight, Row.FIRST.weight, 0, 0));
+        dateTimePicker = createJDateTimePicker();
+        add(dateTimePicker, createGridBagConstraints(Column.SECOND.weight, Row.FIRST.weight, 1, 0));
+        JLabel summaryTitle = createSummaryTitleJLabel();
+        add(summaryTitle, createGridBagConstraints(Column.THIRD.weight, Row.FIRST.weight, 2, 0));
 
-        titleField = createTitleField();
-        descriptionArea = createDescriptionArea();
-        guestsButton = createGuestsButtton();
-        detailsPanel = createDetailsPanel(titleField, descriptionArea, guestsButton);
-        //add(detailsPanel, BorderLayout.EAST);
+        userListModel = createUserListModel();
+        userList = createUserList();
+        thingList = createThingList();
 
-        personNameLabel = createPersonNameLabel();
-        personNameTextField = createPersonNameTextField();
-        personSurnameLabel = createPersonSurnameLabel();
-        personSurnameTextField = createPersonSurnameTextField();
-        thingNameLabel = createThingNameLabel();
-        thingNameTextField = createThingNameTextField();
-        addingButton = createAddingButton();
-        addingPanel = createAddingPanel(personNameLabel, personNameTextField, personSurnameLabel, personSurnameTextField,
-                thingNameLabel, thingNameTextField, addingButton);
-        add(addingPanel, BorderLayout.CENTER);
+        JScrollPane scrollBarUserList = createScrollBarUserList(userList);
+        add(scrollBarUserList, createGridBagConstraints(Column.FIRST.weight, Row.SECOND.weight, 0, 1));
 
-        currentDateTime = createCurrentDateTime();
+        setOnUserListSelectedListener();
+
+        JScrollPane scrollBarThingList = createScrollThingList(thingList);
+        add(scrollBarThingList, createGridBagConstraints(Column.SECOND.weight, Row.SECOND.weight, 1, 1));
         summaryText = createSummaryText();
-        summaryScrollPane = createSummaryScrollPane();
-        summaryPanel = createSummaryPanel(currentDateTime, summaryText, summaryScrollPane);
-        add(summaryPanel, BorderLayout.EAST);
+        JScrollPane scrollBarSummaryText = createScrollBarSummaryText(summaryText);
+        GridBagConstraints scrollBarConstraints = createGridBagConstraints(Column.THIRD.weight, 0, 2, 1);
+        scrollBarConstraints.gridheight = 3;
+        add(scrollBarSummaryText, scrollBarConstraints);
+        printDataMap(dataMap);
 
-        saveEventButton = createSaveEventButton();
-        add(saveEventButton, BorderLayout.SOUTH);
+        JButton addUserButton = createAddUserButton();
+        add(addUserButton, createGridBagConstraints(Column.FIRST.weight, Row.THIRD.weight, 0, 2));
+        setOnAddUserButtonListener(addUserButton);
 
-        Map<Thing, User> tempMap = new HashMap<>();
+        JButton addThingButton = createAddThingButton();
+        add(addThingButton, createGridBagConstraints(Column.SECOND.weight, Row.THIRD.weight, 1, 2));
+        setOnAddThingButtonListener(addThingButton);
 
-        dbConnectionProvider = createConnectionProvider();
-        connection = dbConnectionProvider.getConnection();
-        dbInitializer = new DBInitializer(connection);
-        dbInitializer.createTables();
+        JButton deleteUserButton = createDeleteUserButton();
+        add(deleteUserButton, createGridBagConstraints(Column.FIRST.weight, Row.FOURTH.weight, 0, 3));
+        setOnDeleteUserButtonListener(deleteUserButton);
 
-        saveEventButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                StringBuilder str = new StringBuilder();
-                for (Thing key : tempMap.keySet()) {
-                    str.append(tempMap.get(key))
-                            .append("= ")
-                            .append(key)
-                            .append("\n");
-                }
-                System.out.println(str.toString());
-            }
-        });
+        JButton deleteThingButton = createDeleteThingButton();
+        add(deleteThingButton, createGridBagConstraints(Column.SECOND.weight, Row.FOURTH.weight, 1, 3));
+        setOnDeleteThingButtonListener(deleteThingButton);
 
-        addingButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                User tempUser = new User();
-                Thing tempThing = new Thing();
-
-                tempUser.setName(personNameTextField.getText());
-                tempUser.setSurname(personSurnameTextField.getText());
-                tempThing.setName(thingNameTextField.getText());
-
-                tempMap.put(tempThing, tempUser);
-
-                StringBuilder str = new StringBuilder();
-                for (Thing key : tempMap.keySet()) {
-                    str.append(tempMap.get(key))
-                            .append("= ")
-                            .append(key)
-                            .append("\n");
-                }
-                summaryText.setText(str.toString());
-                personNameTextField.setText("");
-                personSurnameTextField.setText("");
-                thingNameTextField.setText("");
-            }
-        });
+        JButton eventSaveButton = createSaveEventButton();
+        GridBagConstraints eventSaveButtonConstraints = createGridBagConstraints(0, Row.FIFTH.weight, 0, 4);
+        eventSaveButtonConstraints.gridwidth = 3;
+        add(eventSaveButton, eventSaveButtonConstraints);
+        eventSaveButton.addActionListener(e -> onSave.run());
         setVisible(true);
     }
 
-    private JPanel createDetailsPanel(JTextField titleField, JTextArea descriptionArea, JButton guestsButton) {
-        JPanel detailsPanel = new JPanel();
-        detailsPanel.setLayout(new BoxLayout(detailsPanel, BoxLayout.Y_AXIS));
-        detailsPanel.add(titleField);
-        detailsPanel.add(descriptionArea);
-        detailsPanel.add(guestsButton);
-        return detailsPanel;
+    @Override
+    public String getEventName() {
+        return eventName.getText();
     }
 
-    private JPanel createSummaryPanel(JLabel currentDate, JTextArea summaryText, JScrollPane summaryScrollPane){
-        JPanel summaryPanel = new JPanel();
-        summaryPanel.setLayout(new BoxLayout(summaryPanel, BoxLayout.Y_AXIS));
-        summaryPanel.add(currentDate);
-        summaryScrollPane = new JScrollPane(summaryText);
-        summaryPanel.add(summaryScrollPane);
-        return summaryPanel;
+    @Override
+    public LocalDateTime getEventDate() {
+        return LocalDateTime.now(); //TODO replace with datepicker
     }
 
-    private JPanel createAddingPanel(JLabel personNameLabel, JTextField personNameTextField,
-                                     JLabel personSurnameLabel, JTextField personSurnameTextField,
-                                     JLabel thingNameLabel, JTextField thingNameTextField, JButton addingButton)
-    {
-        JPanel addingPanel = new JPanel();
-        addingPanel.setLayout(new BoxLayout(addingPanel, BoxLayout.Y_AXIS));
-        addingPanel.add(personNameLabel);
-        addingPanel.add(personNameTextField);
-        addingPanel.add(personSurnameLabel);
-        addingPanel.add(personSurnameTextField);
-        addingPanel.add(thingNameLabel);
-        addingPanel.add(thingNameTextField);
-        addingPanel.add(addingButton);
-        return addingPanel;
+    @Override
+    public List<UserView> getUsers() {
+        return List.of(); //TODO return userviews with things
     }
 
-    private JPanel createTimePlanningPanel(JDatePicker eventDatePicker, JSpinner eventTimeSpinner) {
-        JPanel timePlanningPanel = new JPanel();
-        timePlanningPanel.setLayout(new BoxLayout(timePlanningPanel, BoxLayout.Y_AXIS));
-        timePlanningPanel.add(eventDatePicker);
-        timePlanningPanel.add(eventTimeSpinner);
-        return timePlanningPanel;
+    @Override
+    public void setOnSaveEvent(Runnable action) {
+        this.onSave = action;
     }
 
-    private JTextField createTitleField() {
-        return new JTextField("tytul");
+    private void setOnDeleteThingButtonListener(JButton deleteThingButton) {
+        deleteThingButton.addActionListener(e -> {
+            var selModel = thingList.getSelectionModel();
+            int index = selModel.getMinSelectionIndex();
+            if (index >= 0) {
+                DefaultListModel<String> tempModel = dataMap.get(userList.getSelectedValue());
+                tempModel.remove(index);
+                dataMap.put(userList.getSelectedValue(), tempModel);
+                if (index != 0) {
+                    thingList.setSelectedIndex(index - 1);
+                } else {
+                    thingList.setSelectedIndex(0);
+                }
+                printDataMap(dataMap);
+            }
+        });
     }
 
-    private JTextArea createDescriptionArea() {
-        JTextArea descriptionArea = new JTextArea("opis");
-        descriptionArea.setLineWrap(true);
-        return descriptionArea;
+    private void setOnDeleteUserButtonListener(JButton deleteUserButton) {
+        deleteUserButton.addActionListener(e -> {
+            var selModel = userList.getSelectionModel();
+            int index = selModel.getMinSelectionIndex();
+            if (index >= 0) {
+                String key = userList.getSelectedValue();
+                DefaultListModel<String> tempModel = dataMap.get(userList.getSelectedValue());
+                dataMap.remove(key);
+                userListModel.remove(index);
+                if (index != 0) {
+                    userList.setSelectedIndex(index - 1);
+                } else {
+                    userList.setSelectedIndex(0);
+                    tempModel.removeAllElements();
+                }
+                printDataMap(dataMap);
+            }
+        });
     }
 
-    private JButton createGuestsButtton() {
-        return new JButton("Goscie");
+    private void setOnAddThingButtonListener(JButton addThingButton) {
+        addThingButton.addActionListener(e -> {
+            var text = JOptionPane.showInputDialog("Add a new thing");
+            String item;
+
+            if (text != null) {
+                item = text.trim();
+            } else {
+                return;
+            }
+
+            if (!item.isEmpty()) {
+                if (!dataMap.isEmpty()) {
+                    DefaultListModel<String> tempModel = dataMap.get(userList.getSelectedValue());
+                    tempModel.addElement(item);
+                    dataMap.put(userList.getSelectedValue(), tempModel);
+                    thingList.setModel(tempModel);
+                    thingList.setSelectedIndex(tempModel.getSize() - 1);
+                    printDataMap(dataMap);
+                } else {
+                    JLabel errorThingWithoutUser = new JLabel("Add some user first!");
+                    errorThingWithoutUser.setHorizontalAlignment(SwingConstants.LEFT);
+                    JOptionPane.showMessageDialog(null, errorThingWithoutUser);
+                }
+            }
+        });
     }
 
-    private JLabel createCurrentDateTime() { return new JLabel(String.valueOf(getCurrentDateTime()));};
+    private void setOnAddUserButtonListener(JButton addUserButton) {
+        addUserButton.addActionListener(e -> {
+            var text = JOptionPane.showInputDialog("Add a new user");
+            String item;
+            int size = userListModel.getSize();
 
-    private JTextArea createSummaryText() { return new JTextArea(); }
+            if (text != null) {
+                item = text.trim();
+            } else {
+                return;
+            }
 
-    private JLocalDatePicker createEventDatePicker() {
-        return new JLocalDatePicker();
+            if (!item.isEmpty()) {
+                if (!(dataMap.containsKey(item))) {
+                    dataMap.put(item, new DefaultListModel<>());
+                    userListModel.addElement(item);
+                    userList.setSelectedIndex(size);
+                    printDataMap(dataMap);
+                } else {
+                    JLabel errorUser = new JLabel("Such user already exists!");
+                    errorUser.setHorizontalAlignment(SwingConstants.LEFT);
+                    JOptionPane.showMessageDialog(null, errorUser);
+                }
+
+            }
+        });
     }
 
-    private JTimeSpinner createEventTimeSpinner() {
-        return new JTimeSpinner();
+    private void setOnUserListSelectedListener() {
+        userList.addListSelectionListener(e -> {
+                    if (!e.getValueIsAdjusting()) {
+                        if (userList.getSelectedIndex() == -1) {
+                            return;
+                        } else
+                            thingList.setModel(dataMap.get(userList.getSelectedValue()));
+                        thingList.setSelectedIndex(0);
+                    }
+                }
+        );
+    }
+
+    private void printDataMap(LinkedHashMap<String, DefaultListModel<String>> dataMap) {
+        String dataToPrint = formatDataMap(dataMap);
+        summaryText.setText(dataToPrint);
+        summaryText.setCaretPosition(0);
+    }
+
+    private String formatDataMap(LinkedHashMap<String, DefaultListModel<String>> dataMap) {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (Map.Entry entry : dataMap.entrySet()) {
+            stringBuilder.append(entry.getKey());
+            stringBuilder.append(":");
+            stringBuilder.append("\n");
+            stringBuilder.append(entry.getValue());
+            stringBuilder.append("\n\n");
+        }
+        return stringBuilder.toString().replaceAll("[\\[\\]]", "");
+    }
+
+    private LinkedHashMap<String, DefaultListModel<String>> createDataMap() {
+        return new LinkedHashMap<>();
+    }
+
+    private GridBagConstraints createGridBagConstraints(double weightx, double weighty, int gridx, int gridy) {
+        GridBagConstraints gridBagConstraints = new GridBagConstraints();
+        gridBagConstraints.fill = GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = weightx;
+        gridBagConstraints.weighty = weighty;
+        gridBagConstraints.gridx = gridx;
+        gridBagConstraints.gridy = gridy;
+        return gridBagConstraints;
+    }
+
+    private JTextField createEventNameTextField() {
+        JTextField eventNameTextField = new JTextField("IMBRA :D");
+        eventNameTextField.setHorizontalAlignment(JTextField.CENTER);
+        return eventNameTextField;
+    }
+
+    private JDateTimePicker createJDateTimePicker() {
+        Date date = new Date();
+        JDateTimePicker dateTimePicker = new JDateTimePicker();
+        dateTimePicker.setFormats(DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM));
+        dateTimePicker.setTimeFormat(DateFormat.getTimeInstance(DateFormat.MEDIUM));
+        dateTimePicker.setDate(date);
+        return dateTimePicker;
+    }
+
+    private JLabel createSummaryTitleJLabel() {
+        JLabel summaryTitleJLabel = new JLabel("Summary");
+        summaryTitleJLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        return summaryTitleJLabel;
+    }
+
+    private DefaultListModel<String> createUserListModel() {
+        return new DefaultListModel<>();
+    }
+
+    private JList<String> createUserList() {
+        for (Map.Entry<String, DefaultListModel<String>> entry : dataMap.entrySet()) {
+            userListModel.addElement(entry.getKey());
+        }
+        JList<String> userList = new JList<>(userListModel);
+        userList.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+        userList.setLayoutOrientation(JList.VERTICAL);
+        userList.setSelectedIndex(0);
+        userList.setVisibleRowCount(-1);
+        return userList;
+    }
+
+    private JScrollPane createScrollBarUserList(JList<String> jlist) {
+        return new JScrollPane(jlist);
+    }
+
+    private JList<String> createThingList() {
+        JList<String> thingList = new JList<>();
+        thingList.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+        thingList.setLayoutOrientation(JList.VERTICAL);
+        thingList.setVisibleRowCount(-1);
+        return thingList;
+    }
+
+    private JScrollPane createScrollThingList(JList<String> jlist) {
+        return new JScrollPane(jlist);
+    }
+
+    private JTextArea createSummaryText() {
+        JTextArea jTextArea = new JTextArea();
+        jTextArea.setEditable(false);
+        jTextArea.setLineWrap(true);
+        return jTextArea;
+    }
+
+    private JScrollPane createScrollBarSummaryText(JTextArea jTextArea) {
+        return new JScrollPane(jTextArea);
+    }
+
+    private JButton createAddUserButton() {
+        return new JButton("Add user");
+    }
+
+    private JButton createAddThingButton() {
+        return new JButton("Add new thing");
+    }
+
+    private JButton createDeleteUserButton() {
+        return new JButton("Delete user");
+    }
+
+    private JButton createDeleteThingButton() {
+        return new JButton("Delete thing");
     }
 
     private JButton createSaveEventButton() {
-        return new JButton("Zapisz impreze");
-    }
-
-    private JLabel createPersonNameLabel() {return new JLabel("Person (Name):");}
-
-    private JLabel createPersonSurnameLabel() {return new JLabel("Person (Surname):");}
-
-    private JTextField createPersonNameTextField() { return new JTextField();}
-
-    private JTextField createPersonSurnameTextField() { return new JTextField();}
-
-    private JLabel createThingNameLabel() { return new JLabel("Thing:");}
-
-    private JTextField createThingNameTextField() { return new JTextField();}
-
-    private JButton createAddingButton() { return new JButton("Add");}
-
-    private JScrollPane createSummaryScrollPane() {return new JScrollPane();}
-
-    private H2ConnectionProvider createConnectionProvider() { return new H2ConnectionProvider();}
-
-    @Override
-    public LocalDateTime getSelectedDateTime() {
-        LocalTime selectedTime = eventTimeSpinner.getSelectedTime();
-        LocalDate selectedDate = eventDatePicker.getSelectedDate();
-        return LocalDateTime.of(selectedDate, selectedTime);
-    }
-
-    @Override
-    public void setSelectedDateTime(LocalDateTime localDateTime) {
-        eventTimeSpinner.setSelectedTime(localDateTime.toLocalTime());
-        eventDatePicker.setSelectedDate(localDateTime.toLocalDate());
-    }
-
-    @Override
-    public String getEventTitle() {
-        return titleField.getText();
-    }
-
-    @Override
-    public void setEventTitle(String title) {
-        titleField.setText(title);
-    }
-
-    @Override
-    public String getEventDescription() {
-        return descriptionArea.getText();
-    }
-
-    @Override
-    public void setEventDescription(String eventDescription) {
-        descriptionArea.setText(eventDescription);
-    }
-
-    @Override
-    public LocalDateTime getCurrentDateTime(){ return LocalDateTime.now(); }
-
-    @Override
-    public void setOnDateSelected(Runnable onDateSelected) {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public void setOnEventSaved(Runnable onEventSaved) {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public void setOnShowGuestList(Runnable onShowGuestList) {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public void setOnEventPlanningClosed(Runnable onEventPlanningClosed) {
-        throw new NotImplementedException();
+        return new JButton("SAVE EVENT");
     }
 }
