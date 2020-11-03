@@ -1,5 +1,6 @@
 package view.planning;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public interface EventPlanning {
@@ -9,6 +10,8 @@ public interface EventPlanning {
     void setEventTitle(String title);
     String getEventDescription();
     void setEventDescription(String eventDescription);
+
+    LocalDateTime getCurrentDateTime();
 
     void setOnDateSelected(Runnable onDateSelected);
     void setOnEventSaved(Runnable onEventSaved);
