@@ -17,9 +17,7 @@ public class DBInitializer {
         try {
             Statement sqlStatement = connection.createStatement();
             connection.setAutoCommit(false);
-            sqlStatement.addBatch("CREATE TABLE IF NOT EXISTS users(user_id serial primary key, name varchar, surname varchar)");
-            sqlStatement.addBatch("CREATE TABLE IF NOT EXISTS things(thing_id serial primary key, name varchar)");
-            sqlStatement.addBatch("CREATE TABLE IF NOT EXISTS bindings(binding_id serial primary key, user_id int, thing_id int)");
+            sqlStatement.addBatch("CREATE TABLE IF NOT EXISTS users(user_id serial primary key, name varchar)");
             int count[] = sqlStatement.executeBatch();
             connection.commit();
         } catch (SQLException e){
