@@ -3,7 +3,9 @@ package controller.planning;
 import db.DBConnectionProvider;
 import db.DBInitializer;
 import db.PostgresqlConnectionProvider;
+import model.Party;
 import model.User;
+import repository.PartyRepository;
 import repository.UserRepository;
 import view.planning.EventPlanning;
 import view.planning.EventPlanningWindow;
@@ -17,6 +19,7 @@ public class EventPlanningController {
     private EventPlanning eventPlanningWindow;
     private DBInitializer tablesInitializer;
     private UserRepository userRepository;
+    private PartyRepository partyRepository;
 
     public void start() {
         eventPlanningWindow = new EventPlanningWindow();
@@ -42,7 +45,23 @@ public class EventPlanningController {
         LocalDateTime eventDate = eventPlanningWindow.getEventDate();
         List<UserView> users = eventPlanningWindow.getUsers();
 
+        createPartyInDatabase(eventName, eventDate);
         createUsersInDatabase(users);
+    }
+
+    private void createPartyInDatabase(String eventName, LocalDateTime eventDate){
+        DBConnectionProvider postgresqlConnectionProvider = new PostgresqlConnectionProvider();
+        try{
+            partyRepository = new PartyRepository(postgresqlConnectionProvider.getConnection());
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+
+        try{
+            partyRepository.create(new Party(eventName, eventDate));
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
     }
 
     private void createUsersInDatabase(List<UserView> listOfUsers) {
