@@ -1,16 +1,16 @@
 package view.planning;
 
 import view.planning.components.JDateTimePicker;
+import view.planning.modelview.ThingView;
 import view.planning.modelview.UserView;
 
 import javax.swing.*;
 import java.awt.*;
 import java.text.DateFormat;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.LinkedHashMap;
+import java.time.ZoneId;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 
 public class EventPlanningWindow extends JFrame implements EventPlanning {
     private enum Column {
@@ -112,12 +112,19 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
 
     @Override
     public LocalDateTime getEventDate() {
-        return LocalDateTime.now(); //TODO replace with datepicker
+        Date tempDate = dateTimePicker.getDate();
+        LocalDateTime eventDateTime = LocalDateTime.ofInstant(tempDate.toInstant(), ZoneId.systemDefault());
+        return eventDateTime;
     }
 
     @Override
     public List<UserView> getUsers() {
-        return List.of(); //TODO return userviews with things
+        List<UserView> listOfUsers = new ArrayList<>();
+        for(Map.Entry<String, DefaultListModel<String>> entry: dataMap.entrySet()) {
+            UserView tempUserView = new UserView(entry.getKey(), (List<ThingView>)(Object) Arrays.asList(entry.getValue().toArray()));
+            listOfUsers.add(tempUserView);
+        }
+        return listOfUsers;
     }
 
     @Override
