@@ -3,7 +3,6 @@ package model;
 public class User {
     private Long id;
     private String name;
-    private String surname;
 
     public Long getId() {
         return id;
@@ -21,26 +20,17 @@ public class User {
         this.name = name;
     }
 
-    public String getSurname() {
-        return surname;
-    }
-
-    public void setSurname(String surname) {
-        this.surname = surname;
-    }
-
     public User() {
 
     }
 
-    public User(String name, String surname) {
+    public User(String name) {
         this.name = name;
-        this.surname = surname;
     }
 
     @Override
     public String toString() {
-        return name + " " + surname + " ";
+        return name + " ";
     }
 
     @Override
@@ -50,13 +40,13 @@ public class User {
         }
         if (obj instanceof User) {
             User otherUser = (User) obj;
-            return id.equals(otherUser.id) && name.equals(otherUser.name) && surname.equals(otherUser.surname);
+            return id.equals(otherUser.id) && name.equals(otherUser.name);
         }
         return false;
     }
 
     @Override
     public int hashCode() {
-        return 47 * id.hashCode() + 17 * name.hashCode() + 31 * surname.hashCode();
+        return 47 * id.hashCode() + 17 * name.hashCode();
     }
 }
