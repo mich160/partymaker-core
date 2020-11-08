@@ -1,77 +1,78 @@
 package repository;
 
 import db.Repository;
-import model.User;
+import model.Participation;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class UserRepository implements Repository<User> {
+public class ParticipationRepository implements Repository<Participation>{
     private final Connection connection;
 
-    public UserRepository(Connection connection) {
+    public ParticipationRepository(Connection connection) {
         this.connection = connection;
     }
 
     @Override
-    public Optional<User> find(long userID) throws SQLException {
-        String SQL = "SELECT user_id, name "
-                + "FROM users "
-                + "WHERE user_id = ?";
+    public Optional<Participation> find(long participationID) throws SQLException {
+        String SQL = "SELECT participation_id, user_id, party_id "
+                + "FROM participations "
+                + "WHERE participation_id = ?";
 
-        User createdUser = null;
+        Participation createdParticipation = null;
 
         try (PreparedStatement pstmt = connection.prepareStatement(SQL, ResultSet.TYPE_SCROLL_SENSITIVE,
                 ResultSet.CONCUR_UPDATABLE)) {
 
-            pstmt.setLong(1, userID);
+            pstmt.setLong(1, participationID);
             ResultSet rs = pstmt.executeQuery();
             if (rs.first()) {
-                createdUser = map(rs);
+                createdParticipation = map(rs);
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
-        return Optional.ofNullable(createdUser);
+        return Optional.ofNullable(createdParticipation);
     }
 
     @Override
-    public List<User> findAll() throws SQLException {
-        String SQL = "SELECT user_id, name FROM users";
+    public List<Participation> findAll() throws SQLException {
+        String SQL = "SELECT participation_id, user_id, party_id FROM participations";
 
-        List<User> users = new ArrayList<>();
+        List<Participation> participations = new ArrayList<>();
 
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(SQL)) {
             while (rs.next()) {
-                users.add(map(rs));
+                participations.add(map(rs));
             }
         } catch (SQLException ex) {
             throw new SQLException();
         }
-        return users;
+        return participations;
     }
 
     @Override
-    public User create(User user) throws SQLException {
-        String SQL = "INSERT INTO users(name) "
-                + "VALUES(?)";
+    public Participation create(Participation participation) throws SQLException {
+        String SQL = "INSERT INTO participations(user_id, party_id) "
+                + "VALUES(?, ?)";
 
-        User objectToReturn = null;
+        Participation objectToReturn = null;
 
         try {
             PreparedStatement pstmt = connection.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS);
 
-            pstmt.setString(1, user.getName());
+            pstmt.setLong(1, participation.getUser_id());
+            pstmt.setLong(2, participation.getParty_id());
 
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
                 try (ResultSet rs = pstmt.getGeneratedKeys()) {
                     if (rs.next()) {
-                        long userID = rs.getInt(1);
-                        objectToReturn = this.find(userID).get();
+                        long participationID = rs.getInt(1);
+                        objectToReturn = this.find(participationID).get();
                     }
                 } catch (SQLException ex) {
                     ex.printStackTrace();
@@ -85,7 +86,7 @@ public class UserRepository implements Repository<User> {
 
     @Override
     public int delete(int id) throws SQLException {
-        String SQL = "DELETE FROM users WHERE user_id = ?";
+        String SQL = "DELETE FROM participations WHERE participation_id = ?";
 
         int affectedrows = 0;
 
@@ -101,11 +102,12 @@ public class UserRepository implements Repository<User> {
         return affectedrows;
     }
 
-    private static User map(ResultSet rs) throws SQLException {
-        User user = new User();
+    private static Participation map(ResultSet rs) throws SQLException {
+        Participation participation = new Participation();
 
-        user.setId(rs.getLong("user_id"));
-        user.setName(rs.getString("name"));
-        return user;
+        participation.setId(rs.getLong("participation_id"));
+        participation.setUser_id(rs.getLong("user_id"));
+        participation.setParty_id(rs.getLong("party_id"));
+        return participation;
     }
 }
