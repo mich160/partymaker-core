@@ -5,8 +5,7 @@ public class Participation {
     private Long party_id;
     private Long user_id;
 
-    public Participation(Long id, Long party_id, Long user_id) {
-        this.id = id;
+    public Participation(Long party_id, Long user_id) {
         this.party_id = party_id;
         this.user_id = user_id;
     }
