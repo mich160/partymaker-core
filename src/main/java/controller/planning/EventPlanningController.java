@@ -6,6 +6,7 @@ import db.PostgresqlConnectionProvider;
 import model.Participation;
 import model.Party;
 import model.User;
+import repository.ParticipationRepository;
 import repository.PartyRepository;
 import repository.UserRepository;
 import view.planning.EventPlanning;
@@ -24,6 +25,7 @@ public class EventPlanningController {
     private PartyRepository partyRepository;
     private List<Long> users_id;
     private Long party_id;
+    private ParticipationRepository participationRepository;
 
     public void start() {
         eventPlanningWindow = new EventPlanningWindow();
@@ -51,7 +53,7 @@ public class EventPlanningController {
 
         createPartyInDatabase(eventName, eventDate);
         createUsersInDatabase(users);
-        createPartitipationsInDatabase(users_id, party_id);
+        createParticipationsInDatabase(users_id, party_id);
     }
 
     private void createPartyInDatabase(String eventName, LocalDateTime eventDate){
@@ -92,11 +94,20 @@ public class EventPlanningController {
         }
     }
 
-    private void createPartitipationsInDatabase(List<Long> users_id, Long party_id){
-        List<Participation> participationsList = new ArrayList<>();
+    private void createParticipationsInDatabase(List<Long> users_id, Long party_id){
+        DBConnectionProvider dbConnectionProvider = new PostgresqlConnectionProvider();
+        try{
+            participationRepository = new ParticipationRepository(dbConnectionProvider.getConnection());
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
         for(Long user_id : users_id){
             Participation participation = new Participation(party_id, user_id);
-            participationsList.add(participation);
+            try{
+                participationRepository.create(participation);
+            }catch (SQLException e){
+                e.printStackTrace();
+            }
         }
     }
 }
