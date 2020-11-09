@@ -26,6 +26,7 @@ public class EventPlanningController {
     private List<Long> users_id;
     private Long party_id;
     private ParticipationRepository participationRepository;
+    private List<Long> participations_id;
 
     public void start() {
         eventPlanningWindow = new EventPlanningWindow();
@@ -96,6 +97,8 @@ public class EventPlanningController {
 
     private void createParticipationsInDatabase(List<Long> users_id, Long party_id){
         DBConnectionProvider dbConnectionProvider = new PostgresqlConnectionProvider();
+        participations_id = new ArrayList<>();
+        Participation tempParticipation = new Participation();
         try{
             participationRepository = new ParticipationRepository(dbConnectionProvider.getConnection());
         }catch (SQLException e){
@@ -104,10 +107,11 @@ public class EventPlanningController {
         for(Long user_id : users_id){
             Participation participation = new Participation(party_id, user_id);
             try{
-                participationRepository.create(participation);
+                tempParticipation = participationRepository.create(participation);
             }catch (SQLException e){
                 e.printStackTrace();
             }
+            participations_id.add(tempParticipation.getId());
         }
     }
 }
