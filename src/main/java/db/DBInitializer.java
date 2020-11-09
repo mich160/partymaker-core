@@ -21,6 +21,8 @@ public class DBInitializer {
             sqlStatement.addBatch("CREATE TABLE IF NOT EXISTS users(user_id serial primary key, name varchar)");
             sqlStatement.addBatch("CREATE TABLE IF NOT EXISTS participations(participation_id serial primary key, user_id INTEGER " +
                     "REFERENCES users (user_id), party_id INTEGER REFERENCES parties (party_id))");
+            sqlStatement.addBatch("CREATE TABLE IF NOT EXISTS things(thing_id serial primary key, name varchar, participation_id INTEGER " +
+                    "REFERENCES participations (participation_id))");
             int count[] = sqlStatement.executeBatch();
             connection.commit();
         } catch (SQLException e){
