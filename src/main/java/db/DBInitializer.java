@@ -19,6 +19,8 @@ public class DBInitializer {
             connection.setAutoCommit(false);
             sqlStatement.addBatch("CREATE TABLE IF NOT EXISTS parties(party_id serial primary key, name varchar, datetime timestamp)");
             sqlStatement.addBatch("CREATE TABLE IF NOT EXISTS users(user_id serial primary key, name varchar)");
+            sqlStatement.addBatch("CREATE TABLE IF NOT EXISTS participations(participation_id serial primary key, user_id INTEGER " +
+                    "REFERENCES users (user_id), party_id INTEGER REFERENCES parties (party_id))");
             int count[] = sqlStatement.executeBatch();
             connection.commit();
         } catch (SQLException e){

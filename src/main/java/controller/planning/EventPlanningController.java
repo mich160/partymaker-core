@@ -80,4 +80,8 @@ public class EventPlanningController {
             }
         }
     }
+
+    private void createPartitipationsInDatabase(List<UserView> listOfUsers, Party party){
+
+    }
 }
