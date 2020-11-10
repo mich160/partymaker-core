@@ -11,12 +11,15 @@ import repository.PartyRepository;
 import repository.UserRepository;
 import view.planning.EventPlanning;
 import view.planning.EventPlanningWindow;
+import view.planning.modelview.ThingView;
 import view.planning.modelview.UserView;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class EventPlanningController {
     private EventPlanning eventPlanningWindow;
@@ -27,6 +30,7 @@ public class EventPlanningController {
     private Long party_id;
     private ParticipationRepository participationRepository;
     private List<Long> participations_id;
+    private Map<ThingView, Long> mapOfThingsToWriteIntoDB;
 
     public void start() {
         eventPlanningWindow = new EventPlanningWindow();
@@ -50,7 +54,8 @@ public class EventPlanningController {
     private void saveEventInDatabase() {
         String eventName = eventPlanningWindow.getEventName();
         LocalDateTime eventDate = eventPlanningWindow.getEventDate();
-        List<UserView> users = eventPlanningWindow.getUsers();
+        List<UserView> users = new ArrayList<>();
+        users = eventPlanningWindow.getUsers();
 
         createPartyInDatabase(eventName, eventDate);
         createUsersInDatabase(users);
@@ -78,6 +83,7 @@ public class EventPlanningController {
     private void createUsersInDatabase(List<UserView> listOfUsers) {
         DBConnectionProvider postgresqlConnectionProvider = new PostgresqlConnectionProvider();
         users_id = new ArrayList<>();
+        mapOfThingsToWriteIntoDB = new HashMap<>();
         User tempUser = new User();
         try{
             userRepository = new UserRepository(postgresqlConnectionProvider.getConnection());
@@ -92,6 +98,9 @@ public class EventPlanningController {
                 e.printStackTrace();
             }
             users_id.add(tempUser.getId());
+            for(ThingView thing: user.getThings()){
+                mapOfThingsToWriteIntoDB.put(thing, tempUser.getId());
+            }
         }
     }
 

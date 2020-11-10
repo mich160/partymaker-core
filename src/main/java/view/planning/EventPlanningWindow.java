@@ -1,5 +1,6 @@
 package view.planning;
 
+import model.Thing;
 import view.planning.components.JDateTimePicker;
 import view.planning.modelview.ThingView;
 import view.planning.modelview.UserView;
@@ -121,7 +122,14 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
     public List<UserView> getUsers() {
         List<UserView> listOfUsers = new ArrayList<>();
         for(Map.Entry<String, DefaultListModel<String>> entry: dataMap.entrySet()) {
-            UserView tempUserView = new UserView(entry.getKey(), (List<ThingView>)(Object) Arrays.asList(entry.getValue().toArray()));
+            List<ThingView> listOfThingViews = new ArrayList<>();
+            List<Object> listOfThingViewsAsObjects = Arrays.asList(entry.getValue().toArray());
+
+            for(Object thingViewAsObject: listOfThingViewsAsObjects){
+                ThingView thingView = new ThingView(thingViewAsObject.toString());
+                listOfThingViews.add(thingView);
+            }
+            UserView tempUserView = new UserView(entry.getKey(), listOfThingViews);
             listOfUsers.add(tempUserView);
         }
         return listOfUsers;
