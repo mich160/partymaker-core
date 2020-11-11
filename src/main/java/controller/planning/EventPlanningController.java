@@ -133,19 +133,15 @@ public class EventPlanningController {
 
     private void createThingsInDatabase(List<ThingView> partyListOfThingsUserHas, List<Long> partyPartcipations_id){
         DBConnectionProvider dbConnectionProvider = new PostgresqlConnectionProvider();
-        Map<ThingView, Long> mapOfThingsAndParticipations_ids = new LinkedHashMap<>();
-        for(int i=0; i<partyPartcipations_id.size(); i++)
-        {
-            mapOfThingsAndParticipations_ids.put(partyListOfThingsUserHas.get(i), partyPartcipations_id.get(i));
-        }
-        System.out.println();
         try{
             thingRepository = new ThingRepository(dbConnectionProvider.getConnection());
         }catch(SQLException e){
             e.printStackTrace();
         }
-        for(Map.Entry<ThingView, Long> entry: mapOfThingsAndParticipations_ids.entrySet()){
-            Thing thing = new Thing(entry.getKey().toString(), entry.getValue());
+
+        for(int i=0; i<partyPartcipations_id.size(); i++)
+        {
+            Thing thing = new Thing(partyListOfThingsUserHas.get(i).toString(), partyPartcipations_id.get(i));
             try{
                 thingRepository.create(thing);
             }catch (SQLException e){
