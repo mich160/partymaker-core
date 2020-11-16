@@ -18,7 +18,7 @@ public class ThingRepository implements Repository<Thing> {
 
     @Override
     public Optional<Thing> find(long thingID) throws SQLException {
-        String SQL = "SELECT thing_id, name, participation_id "
+        String SQL = "SELECT thing_id, name "
                 + "FROM things "
                 + "WHERE thing_id = ?";
 
@@ -40,7 +40,7 @@ public class ThingRepository implements Repository<Thing> {
 
     @Override
     public List<Thing> findAll() throws SQLException {
-        String SQL = "SELECT thing_id, name, participation_id FROM things";
+        String SQL = "SELECT thing_id, name FROM things";
 
         List<Thing> things = new ArrayList<>();
 
@@ -58,8 +58,8 @@ public class ThingRepository implements Repository<Thing> {
     @Override
     public Thing create(Thing obj) throws SQLException {
 
-        String SQL = "INSERT INTO things(name, participation_id) "
-                + "VALUES(?, ?)";
+        String SQL = "INSERT INTO things(name) "
+                + "VALUES(?)";
 
         Thing objectToReturn = null;
 
@@ -67,7 +67,6 @@ public class ThingRepository implements Repository<Thing> {
             PreparedStatement pstmt = connection.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS);
 
             pstmt.setString(1, obj.getName());
-            pstmt.setLong(2, obj.getParticipation_id());
 
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
@@ -106,9 +105,7 @@ public class ThingRepository implements Repository<Thing> {
     private static Thing map(ResultSet rs) throws SQLException {
         Thing obj = new Thing();
 
-        obj.setId(rs.getLong("thing_id"));
         obj.setName(rs.getString("name"));
-        obj.setParticipation_id(rs.getLong("participation_id"));
         return obj;
     }
 }

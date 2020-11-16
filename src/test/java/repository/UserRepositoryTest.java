@@ -17,12 +17,13 @@ public class UserRepositoryTest {
     void testCreatesUser() throws SQLException {
         UserRepository userRepository = getUserRepository();
 
-        User user = new User("Kan");
+        User user = new User("Kan", "Jowalski");
         assertThat(user.getId()).isNull();
 
         User createdUser = userRepository.create(user);
         assertThat(createdUser.getId()).isPositive();
         assertThat(createdUser.getName()).isEqualTo("Kan");
+        assertThat(createdUser.getSurname()).isEqualTo("Jowalski");
     }
 
     @Test
@@ -37,7 +38,7 @@ public class UserRepositoryTest {
     void testFindUser() throws SQLException {
         UserRepository userRepository = getUserRepository();
 
-        User user = new User("Jan");
+        User user = new User("Jan", "Matejko");
         User createdUser = userRepository.create(user);
 
         Optional<User> foundUser = userRepository.find(createdUser.getId());
@@ -57,8 +58,8 @@ public class UserRepositoryTest {
     @Test
     void testFindAllUsers() throws SQLException {
         UserRepository userRepository = getUserRepository();
-        User user1 = new User("Maciej");
-        User user2 = new User("Maciej");
+        User user1 = new User("Maciej", "Parówka");
+        User user2 = new User("Maciej", "Makuła");
 
         userRepository.create(user1);
         userRepository.create(user2);

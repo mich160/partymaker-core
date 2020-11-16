@@ -17,7 +17,7 @@ public class UserRepository implements Repository<User> {
 
     @Override
     public Optional<User> find(long userID) throws SQLException {
-        String SQL = "SELECT user_id, name "
+        String SQL = "SELECT user_id, name, surname "
                 + "FROM users "
                 + "WHERE user_id = ?";
 
@@ -39,7 +39,7 @@ public class UserRepository implements Repository<User> {
 
     @Override
     public List<User> findAll() throws SQLException {
-        String SQL = "SELECT user_id, name FROM users";
+        String SQL = "SELECT user_id, name, surname FROM users";
 
         List<User> users = new ArrayList<>();
 
@@ -56,8 +56,8 @@ public class UserRepository implements Repository<User> {
 
     @Override
     public User create(User user) throws SQLException {
-        String SQL = "INSERT INTO users(name) "
-                + "VALUES(?)";
+        String SQL = "INSERT INTO users(name, surname) "
+                + "VALUES(?,?)";
 
         User objectToReturn = null;
 
@@ -65,12 +65,13 @@ public class UserRepository implements Repository<User> {
             PreparedStatement pstmt = connection.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS);
 
             pstmt.setString(1, user.getName());
+            pstmt.setString(2, user.getSurname());
 
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
                 try (ResultSet rs = pstmt.getGeneratedKeys()) {
                     if (rs.next()) {
-                        long userID = rs.getInt(1);
+                        int userID = rs.getInt(1);
                         objectToReturn = this.find(userID).get();
                     }
                 } catch (SQLException ex) {
@@ -91,7 +92,7 @@ public class UserRepository implements Repository<User> {
 
         try (PreparedStatement pstmt = connection.prepareStatement(SQL)) {
 
-            pstmt.setLong(1, id);
+            pstmt.setInt(1, id);
 
             affectedrows = pstmt.executeUpdate();
 
@@ -106,6 +107,7 @@ public class UserRepository implements Repository<User> {
 
         user.setId(rs.getLong("user_id"));
         user.setName(rs.getString("name"));
+        user.setSurname((rs.getString("surname")));
         return user;
     }
 }
