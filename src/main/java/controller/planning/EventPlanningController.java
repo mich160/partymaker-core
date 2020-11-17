@@ -3,51 +3,45 @@ package controller.planning;
 import db.DBConnectionProvider;
 import db.DBInitializer;
 import db.PostgresqlConnectionProvider;
+import model.Guest;
 import model.Participation;
 import model.Party;
-import model.Thing;
-import model.User;
+import model.Contribution;
 import repository.ParticipationRepository;
 import repository.PartyRepository;
-import repository.ThingRepository;
-import repository.UserRepository;
+import repository.ContributionRepository;
+import repository.GuestRepository;
 import view.planning.EventPlanning;
 import view.planning.EventPlanningWindow;
-import view.planning.modelview.ThingView;
-import view.planning.modelview.UserView;
+import view.planning.modelview.ContributionView;
+import view.planning.modelview.GuestView;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class EventPlanningController {
     private EventPlanning eventPlanningWindow;
     private DBInitializer tablesInitializer;
     private PartyRepository partyRepository;
-    private UserRepository userRepository;
+    private GuestRepository guestRepository;
     private ParticipationRepository participationRepository;
-    private ThingRepository thingRepository;
-    private Long party_id;
-    private List<Long> users_id;
-    private List<ThingView> listOfThingsUserHas;
-    private List<Long> numberOfThingsUserHas;
-    private List<Long> participations_ids;
-    
-    public void start() {
+    private ContributionRepository contributionRepository;
+
+    public EventPlanningController() {
         eventPlanningWindow = new EventPlanningWindow();
         eventPlanningWindow.setOnSaveEvent(this::saveEventInDatabase);
+        DBConnectionProvider dbConnectionProvider = new PostgresqlConnectionProvider();
 
-        DBConnectionProvider dbConnectionProviderForDBInitializer = new PostgresqlConnectionProvider();
-        try{
-            tablesInitializer = new DBInitializer(dbConnectionProviderForDBInitializer.getConnection());
-        }catch(SQLException e){
-            System.out.println("Error during initializing connection");
-            e.printStackTrace();
-        }
-        try{
+        try {
+            this.tablesInitializer = new DBInitializer(dbConnectionProvider.getConnection());
             tablesInitializer.createTables();
-        }catch(SQLException e){
-            System.out.println("Error during creating tables");
+            this.partyRepository = new PartyRepository(dbConnectionProvider.getConnection());
+            this.guestRepository = new GuestRepository(dbConnectionProvider.getConnection());
+            this.participationRepository = new ParticipationRepository(dbConnectionProvider.getConnection());
+            this.contributionRepository = new ContributionRepository(dbConnectionProvider.getConnection());
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }
@@ -55,98 +49,66 @@ public class EventPlanningController {
     private void saveEventInDatabase() {
         String eventName = eventPlanningWindow.getEventName();
         LocalDateTime eventDate = eventPlanningWindow.getEventDate();
-        List<UserView> users = eventPlanningWindow.getUsers();
+        List<GuestView> guests = eventPlanningWindow.getGuests();
 
-        createPartyInDatabase(eventName, eventDate);
-        createUsersInDatabase(users);
-        createParticipationsInDatabase(users_id, party_id);
-        createThingsInDatabase(listOfThingsUserHas, participations_ids);
+        Long partyID = createPartyInDatabase(eventName, eventDate);
+        List<Guest> guestsInDb = createGuestsInDataBase(guests);
+        List<Participation> participationsInDb = createParticipationsInDb(partyID, guestsInDb);
+        createContributionsInDb(guests, guestsInDb, participationsInDb);
     }
 
-    private void createPartyInDatabase(String partyName, LocalDateTime partyDateTime){
-        DBConnectionProvider postgresqlConnectionProvider = new PostgresqlConnectionProvider();
-        party_id = null;
-        Party tempParty = new Party();
-        try{
-            partyRepository = new PartyRepository(postgresqlConnectionProvider.getConnection());
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
-
-        try{
-            tempParty = partyRepository.create(new Party(partyName, partyDateTime));
-        }catch(SQLException e){
-            e.printStackTrace();
-        }
-        party_id = tempParty.getId();
-    }
-
-    private void createUsersInDatabase(List<UserView> partyUsers) {
-        DBConnectionProvider postgresqlConnectionProvider = new PostgresqlConnectionProvider();
-        users_id = new ArrayList<>();
-        listOfThingsUserHas = new ArrayList<>();
-        numberOfThingsUserHas = new ArrayList<>();
-        User tempUser = new User();
-        try{
-            userRepository = new UserRepository(postgresqlConnectionProvider.getConnection());
-        } catch(SQLException e){
-            e.printStackTrace();
-        }
-
-        for(UserView user : partyUsers){
-            try{
-                tempUser = userRepository.create(new User(user.getName()));
-            }catch(SQLException e){
-                e.printStackTrace();
+    private void createContributionsInDb(List<GuestView> guests, List<Guest> guestsInDb, List<Participation> participationsInDb) {
+        Map<String, Long> guestNameToId = guestsInDb.stream()
+                .collect(Collectors.toMap(Guest::getName, Guest::getId));
+        Map<Long, Long> guestIdToParticipationId = participationsInDb.stream()
+                .collect(Collectors.toMap(Participation::getGuestID, Participation::getId));
+        try {
+            for (GuestView guest : guests) {
+                for (ContributionView contribution : guest.getContributions()) {
+                    Long guestId = guestNameToId.get(guest.getName());
+                    Long participationId = guestIdToParticipationId.get(guestId);
+                    contributionRepository.create(new Contribution(contribution.getName(), participationId));
+                }
             }
-            users_id.add(tempUser.getId());
-            for(ThingView thing: user.getThings()){
-                listOfThingsUserHas.add(thing);
-            }
-            numberOfThingsUserHas.add((long) user.getThings().size());
+        } catch (SQLException ex) {
+            ex.printStackTrace();
         }
     }
 
-    private void createParticipationsInDatabase(List<Long> partyUsers_id, Long partyParty_id){
-        DBConnectionProvider dbConnectionProvider = new PostgresqlConnectionProvider();
-        Participation tempParticipation = new Participation();
-        participations_ids = new ArrayList<>();
-        try{
-            participationRepository = new ParticipationRepository(dbConnectionProvider.getConnection());
-        }catch (SQLException e){
-            e.printStackTrace();
-        }
-        int indexOfNumberOfThingsUserHasList = 0;
-        for(Long user_id : partyUsers_id){
-            Participation participation = new Participation(partyParty_id, user_id);
-            try{
-                tempParticipation = participationRepository.create(participation);
-            }catch (SQLException e){
-                e.printStackTrace();
+    private List<Participation> createParticipationsInDb(Long partyID, List<Guest> guestsInDb) {
+        List<Participation> participationsInDb = new ArrayList<>(guestsInDb.size());
+        try {
+            for (Guest guest : guestsInDb) {
+                participationsInDb.add(participationRepository.create(new Participation(partyID, guest.getId())));
             }
-            for(int i=0; i<numberOfThingsUserHas.get(indexOfNumberOfThingsUserHasList); i++){
-                participations_ids.add(tempParticipation.getId());
-            }
-            indexOfNumberOfThingsUserHasList++;
+        } catch (SQLException ex) {
+            ex.printStackTrace();
         }
+        return participationsInDb;
     }
 
-    private void createThingsInDatabase(List<ThingView> partyListOfThingsUserHas, List<Long> partyPartcipations_id){
-        DBConnectionProvider dbConnectionProvider = new PostgresqlConnectionProvider();
-        try{
-            thingRepository = new ThingRepository(dbConnectionProvider.getConnection());
-        }catch(SQLException e){
+    private List<Guest> createGuestsInDataBase(List<GuestView> guests) {
+        List<Guest> savedGuests = guests.stream()
+                .map(guestView -> new Guest(guestView.getName()))
+                .collect(Collectors.toUnmodifiableList());
+        List<Guest> guestsInDb = new ArrayList<>(savedGuests.size());
+        try {
+            for (Guest guest : savedGuests) {
+                guestsInDb.add(guestRepository.create(guest));
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace(); //TODO replace with proper handling
+        }
+        return guestsInDb;
+    }
+
+    private Long createPartyInDatabase(String eventName, LocalDateTime eventDate) {
+        Party party = new Party();
+        try {
+            party = partyRepository.create(new Party(eventName, eventDate));
+        } catch (SQLException e) {
             e.printStackTrace();
         }
-
-        for(int i=0; i<partyPartcipations_id.size(); i++)
-        {
-            Thing thing = new Thing(partyListOfThingsUserHas.get(i).toString(), partyPartcipations_id.get(i));
-            try{
-                thingRepository.create(thing);
-            }catch (SQLException e){
-                e.printStackTrace();
-            }
-        }
+        return party.getId();
     }
 }
