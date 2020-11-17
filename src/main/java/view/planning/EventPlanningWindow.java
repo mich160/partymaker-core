@@ -113,14 +113,14 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
 
     @Override
     public LocalDateTime getEventDate() {
-        Date tempDate = dateTimePicker.getDate();
-        LocalDateTime eventDateTime = LocalDateTime.ofInstant(tempDate.toInstant(), ZoneId.systemDefault());
+        Date chosenDate = dateTimePicker.getDate();
+        LocalDateTime eventDateTime = LocalDateTime.ofInstant(chosenDate.toInstant(), ZoneId.systemDefault());
         return eventDateTime;
     }
 
     @Override
     public List<UserView> getUsers() {
-        List<UserView> listOfUsers = new ArrayList<>();
+        List<UserView> userViews = new ArrayList<>();
         for(Map.Entry<String, DefaultListModel<String>> entry: dataMap.entrySet()) {
             List<ThingView> listOfThingViews = new ArrayList<>();
             List<Object> listOfThingViewsAsObjects = Arrays.asList(entry.getValue().toArray());
@@ -130,9 +130,9 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
                 listOfThingViews.add(thingView);
             }
             UserView tempUserView = new UserView(entry.getKey(), listOfThingViews);
-            listOfUsers.add(tempUserView);
+            userViews.add(tempUserView);
         }
-        return listOfUsers;
+        return userViews;
     }
 
     @Override

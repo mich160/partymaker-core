@@ -64,8 +64,8 @@ public class ParticipationRepository implements Repository<Participation>{
         try {
             PreparedStatement pstmt = connection.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS);
 
-            pstmt.setLong(1, participation.getUser_id());
-            pstmt.setLong(2, participation.getParty_id());
+            pstmt.setLong(1, participation.getUserID());
+            pstmt.setLong(2, participation.getPartyID());
 
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
@@ -106,8 +106,8 @@ public class ParticipationRepository implements Repository<Participation>{
         Participation participation = new Participation();
 
         participation.setId(rs.getLong("participation_id"));
-        participation.setUser_id(rs.getLong("user_id"));
-        participation.setParty_id(rs.getLong("party_id"));
+        participation.setUserID(rs.getLong("user_id"));
+        participation.setPartyID(rs.getLong("party_id"));
         return participation;
     }
 }
