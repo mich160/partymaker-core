@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class ParticipationRepository implements Repository<Participation>{
+public class ParticipationRepository implements Repository<Participation> {
     private final Connection connection;
 
     public ParticipationRepository(Connection connection) {
@@ -17,7 +17,7 @@ public class ParticipationRepository implements Repository<Participation>{
 
     @Override
     public Optional<Participation> find(long participationID) throws SQLException {
-        String SQL = "SELECT participation_id, user_id, party_id "
+        String SQL = "SELECT participation_id, guest_id, party_id "
                 + "FROM participations "
                 + "WHERE participation_id = ?";
 
@@ -39,7 +39,7 @@ public class ParticipationRepository implements Repository<Participation>{
 
     @Override
     public List<Participation> findAll() throws SQLException {
-        String SQL = "SELECT participation_id, user_id, party_id FROM participations";
+        String SQL = "SELECT participation_id, guest_id, party_id FROM participations";
 
         List<Participation> participations = new ArrayList<>();
 
@@ -56,7 +56,7 @@ public class ParticipationRepository implements Repository<Participation>{
 
     @Override
     public Participation create(Participation participation) throws SQLException {
-        String SQL = "INSERT INTO participations(user_id, party_id) "
+        String SQL = "INSERT INTO participations(guest_id, party_id) "
                 + "VALUES(?, ?)";
 
         Participation objectToReturn = null;
@@ -64,7 +64,7 @@ public class ParticipationRepository implements Repository<Participation>{
         try {
             PreparedStatement pstmt = connection.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS);
 
-            pstmt.setLong(1, participation.getUserID());
+            pstmt.setLong(1, participation.getGuestID());
             pstmt.setLong(2, participation.getPartyID());
 
             int affectedRows = pstmt.executeUpdate();
@@ -106,7 +106,7 @@ public class ParticipationRepository implements Repository<Participation>{
         Participation participation = new Participation();
 
         participation.setId(rs.getLong("participation_id"));
-        participation.setUserID(rs.getLong("user_id"));
+        participation.setGuestID(rs.getLong("guest_id"));
         participation.setPartyID(rs.getLong("party_id"));
         return participation;
     }
