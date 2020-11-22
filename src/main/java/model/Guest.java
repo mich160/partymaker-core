@@ -1,6 +1,6 @@
 package model;
 
-public class User {
+public class Guest {
     private Long id;
     private String name;
 
@@ -20,11 +20,11 @@ public class User {
         this.name = name;
     }
 
-    public User() {
+    public Guest() {
 
     }
 
-    public User(String name) {
+    public Guest(String name) {
         this.name = name;
     }
 
@@ -38,9 +38,9 @@ public class User {
         if (obj == null) {
             return false;
         }
-        if (obj instanceof User) {
-            User otherUser = (User) obj;
-            return id.equals(otherUser.id) && name.equals(otherUser.name);
+        if (obj instanceof Guest) {
+            Guest otherGuest = (Guest) obj;
+            return id.equals(otherGuest.id) && name.equals(otherGuest.name);
         }
         return false;
     }

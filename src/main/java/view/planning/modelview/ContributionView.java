@@ -2,10 +2,10 @@ package view.planning.modelview;
 
 import java.util.Objects;
 
-public class ThingView {
+public class ContributionView {
     private final String name;
 
-    public ThingView(String name) {
+    public ContributionView(String name) {
         this.name = name;
     }
 
@@ -14,7 +14,7 @@ public class ThingView {
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         return name;
     }
 
@@ -22,8 +22,8 @@ public class ThingView {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ThingView thingView = (ThingView) o;
-        return Objects.equals(name, thingView.name);
+        ContributionView contributionView = (ContributionView) o;
+        return Objects.equals(name, contributionView.name);
     }
 
     @Override

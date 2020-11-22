@@ -1,9 +1,8 @@
 package view.planning;
 
-import model.Thing;
 import view.planning.components.JDateTimePicker;
-import view.planning.modelview.ThingView;
-import view.planning.modelview.UserView;
+import view.planning.modelview.ContributionView;
+import view.planning.modelview.GuestView;
 
 import javax.swing.*;
 import java.awt.*;
@@ -42,9 +41,9 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
 
     private final JTextField eventName;
     private final JDateTimePicker dateTimePicker;
-    private final DefaultListModel<String> userListModel;
-    private final JList<String> userList;
-    private final JList<String> thingList;
+    private final DefaultListModel<String> guestListModel;
+    private final JList<String> guestList;
+    private final JList<String> contributionList;
     private final JTextArea summaryText;
     private Runnable onSave;
 
@@ -64,17 +63,17 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
         JLabel summaryTitle = createSummaryTitleJLabel();
         add(summaryTitle, createGridBagConstraints(Column.THIRD.weight, Row.FIRST.weight, 2, 0));
 
-        userListModel = createUserListModel();
-        userList = createUserList();
-        thingList = createThingList();
+        guestListModel = createGuestListModel();
+        guestList = createGuestList();
+        contributionList = createContributionList();
 
-        JScrollPane scrollBarUserList = createScrollBarUserList(userList);
-        add(scrollBarUserList, createGridBagConstraints(Column.FIRST.weight, Row.SECOND.weight, 0, 1));
+        JScrollPane scrollBarGuestList = createScrollBarGuestList(guestList);
+        add(scrollBarGuestList, createGridBagConstraints(Column.FIRST.weight, Row.SECOND.weight, 0, 1));
 
-        setOnUserListSelectedListener();
+        setOnGuestListSelectedListener();
 
-        JScrollPane scrollBarThingList = createScrollThingList(thingList);
-        add(scrollBarThingList, createGridBagConstraints(Column.SECOND.weight, Row.SECOND.weight, 1, 1));
+        JScrollPane scrollBarContributionList = createScrollContributionList(contributionList);
+        add(scrollBarContributionList, createGridBagConstraints(Column.SECOND.weight, Row.SECOND.weight, 1, 1));
         summaryText = createSummaryText();
         JScrollPane scrollBarSummaryText = createScrollBarSummaryText(summaryText);
         GridBagConstraints scrollBarConstraints = createGridBagConstraints(Column.THIRD.weight, 0, 2, 1);
@@ -82,21 +81,21 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
         add(scrollBarSummaryText, scrollBarConstraints);
         printDataMap(dataMap);
 
-        JButton addUserButton = createAddUserButton();
-        add(addUserButton, createGridBagConstraints(Column.FIRST.weight, Row.THIRD.weight, 0, 2));
-        setOnAddUserButtonListener(addUserButton);
+        JButton addGuestButton = createAddGuestButton();
+        add(addGuestButton, createGridBagConstraints(Column.FIRST.weight, Row.THIRD.weight, 0, 2));
+        setOnAddGuestButtonListener(addGuestButton);
 
-        JButton addThingButton = createAddThingButton();
-        add(addThingButton, createGridBagConstraints(Column.SECOND.weight, Row.THIRD.weight, 1, 2));
-        setOnAddThingButtonListener(addThingButton);
+        JButton addContributionButton = createAddContributionButton();
+        add(addContributionButton, createGridBagConstraints(Column.SECOND.weight, Row.THIRD.weight, 1, 2));
+        setOnAddContributionButtonListener(addContributionButton);
 
-        JButton deleteUserButton = createDeleteUserButton();
-        add(deleteUserButton, createGridBagConstraints(Column.FIRST.weight, Row.FOURTH.weight, 0, 3));
-        setOnDeleteUserButtonListener(deleteUserButton);
+        JButton deleteGuestButton = createDeleteGuestButton();
+        add(deleteGuestButton, createGridBagConstraints(Column.FIRST.weight, Row.FOURTH.weight, 0, 3));
+        setOnDeleteGuestButtonListener(deleteGuestButton);
 
-        JButton deleteThingButton = createDeleteThingButton();
-        add(deleteThingButton, createGridBagConstraints(Column.SECOND.weight, Row.FOURTH.weight, 1, 3));
-        setOnDeleteThingButtonListener(deleteThingButton);
+        JButton deleteContributionButton = createDeleteContributionButton();
+        add(deleteContributionButton, createGridBagConstraints(Column.SECOND.weight, Row.FOURTH.weight, 1, 3));
+        setOnDeleteContributionButtonListener(deleteContributionButton);
 
         JButton eventSaveButton = createSaveEventButton();
         GridBagConstraints eventSaveButtonConstraints = createGridBagConstraints(0, Row.FIFTH.weight, 0, 4);
@@ -119,20 +118,20 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
     }
 
     @Override
-    public List<UserView> getUsers() {
-        List<UserView> userViews = new ArrayList<>();
-        for(Map.Entry<String, DefaultListModel<String>> entry: dataMap.entrySet()) {
-            List<ThingView> listOfThingViews = new ArrayList<>();
-            List<Object> listOfThingViewsAsObjects = Arrays.asList(entry.getValue().toArray());
+    public List<GuestView> getGuests() {
+        List<GuestView> guestViews = new ArrayList<>();
+        for (Map.Entry<String, DefaultListModel<String>> entry : dataMap.entrySet()) {
+            List<ContributionView> listOfContributionViews = new ArrayList<>();
+            List<Object> listOfContributionViewsAsObjects = Arrays.asList(entry.getValue().toArray());
 
-            for(Object thingViewAsObject: listOfThingViewsAsObjects){
-                ThingView thingView = new ThingView(thingViewAsObject.toString());
-                listOfThingViews.add(thingView);
+            for (Object contributionViewAsObject : listOfContributionViewsAsObjects) {
+                ContributionView contributionView = new ContributionView(contributionViewAsObject.toString());
+                listOfContributionViews.add(contributionView);
             }
-            UserView tempUserView = new UserView(entry.getKey(), listOfThingViews);
-            userViews.add(tempUserView);
+            GuestView tempGuestView = new GuestView(entry.getKey(), listOfContributionViews);
+            guestViews.add(tempGuestView);
         }
-        return userViews;
+        return guestViews;
     }
 
     @Override
@@ -140,37 +139,37 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
         this.onSave = action;
     }
 
-    private void setOnDeleteThingButtonListener(JButton deleteThingButton) {
-        deleteThingButton.addActionListener(e -> {
-            var selModel = thingList.getSelectionModel();
+    private void setOnDeleteContributionButtonListener(JButton deleteContributionButton) {
+        deleteContributionButton.addActionListener(e -> {
+            var selModel = contributionList.getSelectionModel();
             int index = selModel.getMinSelectionIndex();
             if (index >= 0) {
-                DefaultListModel<String> tempModel = dataMap.get(userList.getSelectedValue());
+                DefaultListModel<String> tempModel = dataMap.get(guestList.getSelectedValue());
                 tempModel.remove(index);
-                dataMap.put(userList.getSelectedValue(), tempModel);
+                dataMap.put(guestList.getSelectedValue(), tempModel);
                 if (index != 0) {
-                    thingList.setSelectedIndex(index - 1);
+                    contributionList.setSelectedIndex(index - 1);
                 } else {
-                    thingList.setSelectedIndex(0);
+                    contributionList.setSelectedIndex(0);
                 }
                 printDataMap(dataMap);
             }
         });
     }
 
-    private void setOnDeleteUserButtonListener(JButton deleteUserButton) {
-        deleteUserButton.addActionListener(e -> {
-            var selModel = userList.getSelectionModel();
+    private void setOnDeleteGuestButtonListener(JButton deleteGuestButton) {
+        deleteGuestButton.addActionListener(e -> {
+            var selModel = guestList.getSelectionModel();
             int index = selModel.getMinSelectionIndex();
             if (index >= 0) {
-                String key = userList.getSelectedValue();
-                DefaultListModel<String> tempModel = dataMap.get(userList.getSelectedValue());
+                String key = guestList.getSelectedValue();
+                DefaultListModel<String> tempModel = dataMap.get(guestList.getSelectedValue());
                 dataMap.remove(key);
-                userListModel.remove(index);
+                guestListModel.remove(index);
                 if (index != 0) {
-                    userList.setSelectedIndex(index - 1);
+                    guestList.setSelectedIndex(index - 1);
                 } else {
-                    userList.setSelectedIndex(0);
+                    guestList.setSelectedIndex(0);
                     tempModel.removeAllElements();
                 }
                 printDataMap(dataMap);
@@ -178,9 +177,9 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
         });
     }
 
-    private void setOnAddThingButtonListener(JButton addThingButton) {
-        addThingButton.addActionListener(e -> {
-            var text = JOptionPane.showInputDialog("Add a new thing");
+    private void setOnAddContributionButtonListener(JButton addContributionButton) {
+        addContributionButton.addActionListener(e -> {
+            var text = JOptionPane.showInputDialog("Add a new contribution");
             String item;
 
             if (text != null) {
@@ -191,26 +190,26 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
 
             if (!item.isEmpty()) {
                 if (!dataMap.isEmpty()) {
-                    DefaultListModel<String> tempModel = dataMap.get(userList.getSelectedValue());
+                    DefaultListModel<String> tempModel = dataMap.get(guestList.getSelectedValue());
                     tempModel.addElement(item);
-                    dataMap.put(userList.getSelectedValue(), tempModel);
-                    thingList.setModel(tempModel);
-                    thingList.setSelectedIndex(tempModel.getSize() - 1);
+                    dataMap.put(guestList.getSelectedValue(), tempModel);
+                    contributionList.setModel(tempModel);
+                    contributionList.setSelectedIndex(tempModel.getSize() - 1);
                     printDataMap(dataMap);
                 } else {
-                    JLabel errorThingWithoutUser = new JLabel("Add some user first!");
-                    errorThingWithoutUser.setHorizontalAlignment(SwingConstants.LEFT);
-                    JOptionPane.showMessageDialog(null, errorThingWithoutUser);
+                    JLabel errorContributionWithoutGuest = new JLabel("Add some guest first!");
+                    errorContributionWithoutGuest.setHorizontalAlignment(SwingConstants.LEFT);
+                    JOptionPane.showMessageDialog(null, errorContributionWithoutGuest);
                 }
             }
         });
     }
 
-    private void setOnAddUserButtonListener(JButton addUserButton) {
-        addUserButton.addActionListener(e -> {
-            var text = JOptionPane.showInputDialog("Add a new user");
+    private void setOnAddGuestButtonListener(JButton addGuestButton) {
+        addGuestButton.addActionListener(e -> {
+            var text = JOptionPane.showInputDialog("Add a new guest");
             String item;
-            int size = userListModel.getSize();
+            int size = guestListModel.getSize();
 
             if (text != null) {
                 item = text.trim();
@@ -221,27 +220,27 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
             if (!item.isEmpty()) {
                 if (!(dataMap.containsKey(item))) {
                     dataMap.put(item, new DefaultListModel<>());
-                    userListModel.addElement(item);
-                    userList.setSelectedIndex(size);
+                    guestListModel.addElement(item);
+                    guestList.setSelectedIndex(size);
                     printDataMap(dataMap);
                 } else {
-                    JLabel errorUser = new JLabel("Such user already exists!");
-                    errorUser.setHorizontalAlignment(SwingConstants.LEFT);
-                    JOptionPane.showMessageDialog(null, errorUser);
+                    JLabel errorGuest = new JLabel("Such guest already exists!");
+                    errorGuest.setHorizontalAlignment(SwingConstants.LEFT);
+                    JOptionPane.showMessageDialog(null, errorGuest);
                 }
 
             }
         });
     }
 
-    private void setOnUserListSelectedListener() {
-        userList.addListSelectionListener(e -> {
+    private void setOnGuestListSelectedListener() {
+        guestList.addListSelectionListener(e -> {
                     if (!e.getValueIsAdjusting()) {
-                        if (userList.getSelectedIndex() == -1) {
+                        if (guestList.getSelectedIndex() == -1) {
                             return;
                         } else
-                            thingList.setModel(dataMap.get(userList.getSelectedValue()));
-                        thingList.setSelectedIndex(0);
+                            contributionList.setModel(dataMap.get(guestList.getSelectedValue()));
+                        contributionList.setSelectedIndex(0);
                     }
                 }
         );
@@ -300,35 +299,35 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
         return summaryTitleJLabel;
     }
 
-    private DefaultListModel<String> createUserListModel() {
+    private DefaultListModel<String> createGuestListModel() {
         return new DefaultListModel<>();
     }
 
-    private JList<String> createUserList() {
+    private JList<String> createGuestList() {
         for (Map.Entry<String, DefaultListModel<String>> entry : dataMap.entrySet()) {
-            userListModel.addElement(entry.getKey());
+            guestListModel.addElement(entry.getKey());
         }
-        JList<String> userList = new JList<>(userListModel);
-        userList.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
-        userList.setLayoutOrientation(JList.VERTICAL);
-        userList.setSelectedIndex(0);
-        userList.setVisibleRowCount(-1);
-        return userList;
+        JList<String> guestList = new JList<>(guestListModel);
+        guestList.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+        guestList.setLayoutOrientation(JList.VERTICAL);
+        guestList.setSelectedIndex(0);
+        guestList.setVisibleRowCount(-1);
+        return guestList;
     }
 
-    private JScrollPane createScrollBarUserList(JList<String> jlist) {
+    private JScrollPane createScrollBarGuestList(JList<String> jlist) {
         return new JScrollPane(jlist);
     }
 
-    private JList<String> createThingList() {
-        JList<String> thingList = new JList<>();
-        thingList.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
-        thingList.setLayoutOrientation(JList.VERTICAL);
-        thingList.setVisibleRowCount(-1);
-        return thingList;
+    private JList<String> createContributionList() {
+        JList<String> contributionList = new JList<>();
+        contributionList.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+        contributionList.setLayoutOrientation(JList.VERTICAL);
+        contributionList.setVisibleRowCount(-1);
+        return contributionList;
     }
 
-    private JScrollPane createScrollThingList(JList<String> jlist) {
+    private JScrollPane createScrollContributionList(JList<String> jlist) {
         return new JScrollPane(jlist);
     }
 
@@ -343,20 +342,20 @@ public class EventPlanningWindow extends JFrame implements EventPlanning {
         return new JScrollPane(jTextArea);
     }
 
-    private JButton createAddUserButton() {
-        return new JButton("Add user");
+    private JButton createAddGuestButton() {
+        return new JButton("Add guest");
     }
 
-    private JButton createAddThingButton() {
-        return new JButton("Add new thing");
+    private JButton createAddContributionButton() {
+        return new JButton("Add contribution");
     }
 
-    private JButton createDeleteUserButton() {
-        return new JButton("Delete user");
+    private JButton createDeleteGuestButton() {
+        return new JButton("Delete guest");
     }
 
-    private JButton createDeleteThingButton() {
-        return new JButton("Delete thing");
+    private JButton createDeleteContributionButton() {
+        return new JButton("Delete contribution");
     }
 
     private JButton createSaveEventButton() {

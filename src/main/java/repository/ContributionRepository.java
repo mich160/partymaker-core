@@ -1,77 +1,78 @@
 package repository;
 
 import db.Repository;
-import model.User;
+import model.Contribution;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class UserRepository implements Repository<User> {
+public class ContributionRepository implements Repository<Contribution> {
     private final Connection connection;
 
-    public UserRepository(Connection connection) {
+    public ContributionRepository(Connection connection) {
         this.connection = connection;
     }
 
     @Override
-    public Optional<User> find(long userID) throws SQLException {
-        String SQL = "SELECT user_id, name "
-                + "FROM users "
-                + "WHERE user_id = ?";
+    public Optional<Contribution> find(long contributionID) throws SQLException {
+        String SQL = "SELECT contribution_id, name, participation_id "
+                + "FROM contributions "
+                + "WHERE contribution_id = ?";
 
-        User createdUser = null;
+        Contribution obj = null;
 
         try (PreparedStatement pstmt = connection.prepareStatement(SQL, ResultSet.TYPE_SCROLL_SENSITIVE,
                 ResultSet.CONCUR_UPDATABLE)) {
 
-            pstmt.setLong(1, userID);
+            pstmt.setLong(1, contributionID);
             ResultSet rs = pstmt.executeQuery();
             if (rs.first()) {
-                createdUser = map(rs);
+                obj = map(rs);
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
-        return Optional.ofNullable(createdUser);
+        return Optional.ofNullable(obj);
     }
 
     @Override
-    public List<User> findAll() throws SQLException {
-        String SQL = "SELECT user_id, name FROM users";
+    public List<Contribution> findAll() throws SQLException {
+        String SQL = "SELECT contribution_id, name, participation_id FROM contributions";
 
-        List<User> users = new ArrayList<>();
+        List<Contribution> contributions = new ArrayList<>();
 
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(SQL)) {
             while (rs.next()) {
-                users.add(map(rs));
+                contributions.add(map(rs));
             }
         } catch (SQLException ex) {
             throw new SQLException();
         }
-        return users;
+        return contributions;
     }
 
     @Override
-    public User create(User user) throws SQLException {
-        String SQL = "INSERT INTO users(name) "
-                + "VALUES(?)";
+    public Contribution create(Contribution obj) throws SQLException {
 
-        User objectToReturn = null;
+        String SQL = "INSERT INTO contributions(name, participation_id) "
+                + "VALUES(?, ?)";
+
+        Contribution objectToReturn = null;
 
         try {
             PreparedStatement pstmt = connection.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS);
 
-            pstmt.setString(1, user.getName());
+            pstmt.setString(1, obj.getName());
+            pstmt.setLong(2, obj.getParticipation_id());
 
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
                 try (ResultSet rs = pstmt.getGeneratedKeys()) {
                     if (rs.next()) {
-                        long userID = rs.getInt(1);
-                        objectToReturn = this.find(userID).get();
+                        objectToReturn = this.find(rs.getInt(1)).get();
                     }
                 } catch (SQLException ex) {
                     ex.printStackTrace();
@@ -85,13 +86,13 @@ public class UserRepository implements Repository<User> {
 
     @Override
     public int delete(int id) throws SQLException {
-        String SQL = "DELETE FROM users WHERE user_id = ?";
+        String SQL = "DELETE FROM contributions WHERE contribution_id = ?";
 
         int affectedrows = 0;
 
         try (PreparedStatement pstmt = connection.prepareStatement(SQL)) {
 
-            pstmt.setLong(1, id);
+            pstmt.setInt(1, id);
 
             affectedrows = pstmt.executeUpdate();
 
@@ -101,11 +102,12 @@ public class UserRepository implements Repository<User> {
         return affectedrows;
     }
 
-    private static User map(ResultSet rs) throws SQLException {
-        User user = new User();
+    private static Contribution map(ResultSet rs) throws SQLException {
+        Contribution obj = new Contribution();
 
-        user.setId(rs.getLong("user_id"));
-        user.setName(rs.getString("name"));
-        return user;
+        obj.setId(rs.getLong("contribution_id"));
+        obj.setName(rs.getString("name"));
+        obj.setParticipation_id(rs.getLong("participation_id"));
+        return obj;
     }
 }

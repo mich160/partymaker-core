@@ -1,13 +1,14 @@
 package model;
 
-public class Thing {
+public class Contribution {
     private Long id;
     private String name;
     private Long participation_id;
 
-    public Thing(){}
+    public Contribution() {
+    }
 
-    public Thing(String name, Long participation_id) {
+    public Contribution(String name, Long participation_id) {
         this.name = name;
         this.participation_id = participation_id;
     }
@@ -47,9 +48,9 @@ public class Thing {
             return false;
         }
 
-        if (obj instanceof Thing) {
-            Thing otherThing = (Thing) obj;
-            return name.equals(otherThing.name);
+        if (obj instanceof Contribution) {
+            Contribution otherContribution = (Contribution) obj;
+            return name.equals(otherContribution.name);
         }
         return false;
     }
