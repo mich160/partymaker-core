@@ -19,6 +19,7 @@ import view.planning.modelview.GuestView;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class EventPlanningController {
     private EventPlanning eventPlanningWindow;
@@ -51,9 +52,54 @@ public class EventPlanningController {
         List<GuestView> guests = eventPlanningWindow.getGuests();
 
         Long partyID = createPartyInDatabase(eventName, eventDate);
-        Pair<ArrayList> data = createGuestsInDatabase(guests);
-        ArrayList<Long> participationsIDs = createParticipationsInDatabase(data.guestsIDs, partyID, data.numberOfContributionsGuestHas);
-        createContributionsInDatabase(data.listOfContributionsGuestHas, participationsIDs);
+        List<Guest> guestsInDb = createGuestsInDataBase(guests);
+        List<Participation> participationsInDb = createParticipationsInDb(partyID, guestsInDb);
+        createContributionsInDb(guests, guestsInDb, participationsInDb);
+    }
+
+    private void createContributionsInDb(List<GuestView> guests, List<Guest> guestsInDb, List<Participation> participationsInDb) {
+        Map<String, Long> guestNameToId = guestsInDb.stream()
+                .collect(Collectors.toMap(Guest::getName, Guest::getId));
+        Map<Long, Long> guestIdToParticipationId = participationsInDb.stream()
+                .collect(Collectors.toMap(Participation::getGuestID, Participation::getId));
+        try {
+            for (GuestView guest : guests) {
+                for (ContributionView contribution : guest.getContributions()) {
+                    Long guestId = guestNameToId.get(guest.getName());
+                    Long participationId = guestIdToParticipationId.get(guestId);
+                    contributionRepository.create(new Contribution(contribution.getName(), participationId));
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private List<Participation> createParticipationsInDb(Long partyID, List<Guest> guestsInDb) {
+        List<Participation> participationsInDb = new ArrayList<>(guestsInDb.size());
+        try {
+            for (Guest guest : guestsInDb) {
+                participationsInDb.add(participationRepository.create(new Participation(partyID, guest.getId())));
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return participationsInDb;
+    }
+
+    private List<Guest> createGuestsInDataBase(List<GuestView> guests) {
+        List<Guest> savedGuests = guests.stream()
+                .map(guestView -> new Guest(guestView.getName()))
+                .collect(Collectors.toUnmodifiableList());
+        List<Guest> guestsInDb = new ArrayList<>(savedGuests.size());
+        try {
+            for (Guest guest : savedGuests) {
+                guestsInDb.add(guestRepository.create(guest));
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace(); //TODO replace with proper handling
+        }
+        return guestsInDb;
     }
 
     private Long createPartyInDatabase(String eventName, LocalDateTime eventDate) {
@@ -64,81 +110,5 @@ public class EventPlanningController {
             e.printStackTrace();
         }
         return party.getId();
-    }
-
-    class Pair<ArrayList> {
-        private final ArrayList guestsIDs;
-        private final ArrayList listOfContributionsGuestHas;
-        private final ArrayList numberOfContributionsGuestHas;
-
-        private Pair(ArrayList guestsIDs, ArrayList listOfContributionsGuestHas, ArrayList numberOfContributionsGuestHas) {
-            this.guestsIDs = guestsIDs;
-            this.listOfContributionsGuestHas = listOfContributionsGuestHas;
-            this.numberOfContributionsGuestHas = numberOfContributionsGuestHas;
-        }
-
-        public ArrayList guestsIDs() {
-            return guestsIDs;
-        }
-
-        public ArrayList listOfContributionsGuestHas() {
-            return listOfContributionsGuestHas;
-        }
-
-        public ArrayList numberOfContributionsGuestHas() {
-            return numberOfContributionsGuestHas;
-        }
-    }
-
-    private Pair<ArrayList> createGuestsInDatabase(List<GuestView> guests) {
-        ArrayList guestsIDs = new ArrayList<>();
-        ArrayList listOfContributionsGuestHas = new ArrayList<>();
-        ArrayList numberOfContributionsGuestHas = new ArrayList<>();
-        Guest guest;
-        try {
-            for (GuestView guestFromList : guests) {
-                guest = guestRepository.create(new Guest(guestFromList.getName()));
-                guestsIDs.add(guest.getId());
-                for (ContributionView contribution : guestFromList.getContributions()) {
-                    listOfContributionsGuestHas.add(contribution);
-                }
-                numberOfContributionsGuestHas.add((long) guestFromList.getContributions().size());
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return new Pair<ArrayList>(guestsIDs, listOfContributionsGuestHas, numberOfContributionsGuestHas);
-    }
-
-    private ArrayList<Long> createParticipationsInDatabase(List<Long> guestsIDs, Long partyID, ArrayList<Long> numberOfContributionsGuestHas) {
-        Participation participation;
-        ArrayList participationsIDs = new ArrayList<>();
-        try {
-            int indexOfNumberOfContributionsGuestHasList = 0;
-            for (Long guest_id : guestsIDs) {
-                Participation participationToSave = new Participation(partyID, guest_id);
-
-                participation = participationRepository.create(participationToSave);
-
-                for (int i = 0; i < numberOfContributionsGuestHas.get(indexOfNumberOfContributionsGuestHasList); i++) {
-                    participationsIDs.add(participation.getId());
-                }
-                indexOfNumberOfContributionsGuestHasList++;
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return participationsIDs;
-    }
-
-    private void createContributionsInDatabase(List<ContributionView> listOfContributionsGuestHas, List<Long> participationsIDs) {
-        try {
-            for (int i = 0; i < participationsIDs.size(); i++) {
-                Contribution contribution = new Contribution(listOfContributionsGuestHas.get(i).toString(), participationsIDs.get(i));
-                contributionRepository.create(contribution);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 }
