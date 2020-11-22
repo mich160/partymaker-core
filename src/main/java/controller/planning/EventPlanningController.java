@@ -16,7 +16,6 @@ import view.planning.EventPlanningWindow;
 import view.planning.modelview.ContributionView;
 import view.planning.modelview.GuestView;
 
-import javax.swing.*;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -28,11 +27,6 @@ public class EventPlanningController {
     private GuestRepository guestRepository;
     private ParticipationRepository participationRepository;
     private ContributionRepository contributionRepository;
-    private Long partyID;
-    private List<Long> guestsIDs;
-    private List<ContributionView> listOfContributionsGuestHas;
-    private List<Long> numberOfContributionsGuestHas;
-    private List<Long> participationsIDs;
 
     public EventPlanningController() {
         eventPlanningWindow = new EventPlanningWindow();
@@ -56,30 +50,54 @@ public class EventPlanningController {
         LocalDateTime eventDate = eventPlanningWindow.getEventDate();
         List<GuestView> guests = eventPlanningWindow.getGuests();
 
-        createPartyInDatabase(eventName, eventDate);
-        createGuestsInDatabase(guests);
-        createParticipationsInDatabase(guestsIDs, partyID);
-        createContributionsInDatabase(listOfContributionsGuestHas, participationsIDs);
+        Long partyID = createPartyInDatabase(eventName, eventDate);
+        Pair<ArrayList> data = createGuestsInDatabase(guests);
+        ArrayList<Long> participationsIDs = createParticipationsInDatabase(data.guestsIDs, partyID, data.numberOfContributionsGuestHas);
+        createContributionsInDatabase(data.listOfContributionsGuestHas, participationsIDs);
     }
 
-    private void createPartyInDatabase(String partyName, LocalDateTime partyDateTime) {
-        partyID = null;
+    private Long createPartyInDatabase(String partyName, LocalDateTime partyDateTime) {
+        Long partyID;
         Party party = new Party();
         try {
             party = partyRepository.create(new Party(partyName, partyDateTime));
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        partyID = party.getId();
+        return partyID = party.getId();
     }
 
-    private void createGuestsInDatabase(List<GuestView> partyGuests) {
-        guestsIDs = new ArrayList<>();
-        listOfContributionsGuestHas = new ArrayList<>();
-        numberOfContributionsGuestHas = new ArrayList<>();
+    class Pair<ArrayList> {
+        private final ArrayList guestsIDs;
+        private final ArrayList listOfContributionsGuestHas;
+        private final ArrayList numberOfContributionsGuestHas;
+
+        private Pair(ArrayList guestsIDs, ArrayList listOfContributionsGuestHas, ArrayList numberOfContributionsGuestHas) {
+            this.guestsIDs = guestsIDs;
+            this.listOfContributionsGuestHas = listOfContributionsGuestHas;
+            this.numberOfContributionsGuestHas = numberOfContributionsGuestHas;
+        }
+
+        public ArrayList guestsIDs() {
+            return guestsIDs;
+        }
+
+        public ArrayList listOfContributionsGuestHas() {
+            return listOfContributionsGuestHas;
+        }
+
+        public ArrayList numberOfContributionsGuestHas() {
+            return numberOfContributionsGuestHas;
+        }
+    }
+
+    private Pair<ArrayList> createGuestsInDatabase(List<GuestView> guests) {
+        ArrayList guestsIDs = new ArrayList<>();
+        ArrayList listOfContributionsGuestHas = new ArrayList<>();
+        ArrayList numberOfContributionsGuestHas = new ArrayList<>();
         Guest guest;
         try {
-            for (GuestView guestFromList : partyGuests) {
+            for (GuestView guestFromList : guests) {
                 guest = guestRepository.create(new Guest(guestFromList.getName()));
                 guestsIDs.add(guest.getId());
                 for (ContributionView contribution : guestFromList.getContributions()) {
@@ -90,15 +108,16 @@ public class EventPlanningController {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return new Pair<ArrayList>(guestsIDs, listOfContributionsGuestHas, numberOfContributionsGuestHas);
     }
 
-    private void createParticipationsInDatabase(List<Long> partyGuests_id, Long partyParty_id) {
+    private ArrayList<Long> createParticipationsInDatabase(List<Long> guestsIDs, Long partyID, ArrayList<Long> numberOfContributionsGuestHas) {
         Participation participation;
-        participationsIDs = new ArrayList<>();
+        ArrayList participationsIDs = new ArrayList<>();
         try {
             int indexOfNumberOfContributionsGuestHasList = 0;
-            for (Long guest_id : partyGuests_id) {
-                Participation participationToSave = new Participation(partyParty_id, guest_id);
+            for (Long guest_id : guestsIDs) {
+                Participation participationToSave = new Participation(partyID, guest_id);
 
                 participation = participationRepository.create(participationToSave);
 
@@ -110,12 +129,13 @@ public class EventPlanningController {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return participationsIDs;
     }
 
-    private void createContributionsInDatabase(List<ContributionView> partyListOfContributionsGuestHas, List<Long> partyPartcipations_id) {
+    private void createContributionsInDatabase(List<ContributionView> listOfContributionsGuestHas, List<Long> participationsIDs) {
         try {
-            for (int i = 0; i < partyPartcipations_id.size(); i++) {
-                Contribution contribution = new Contribution(partyListOfContributionsGuestHas.get(i).toString(), partyPartcipations_id.get(i));
+            for (int i = 0; i < participationsIDs.size(); i++) {
+                Contribution contribution = new Contribution(listOfContributionsGuestHas.get(i).toString(), participationsIDs.get(i));
                 contributionRepository.create(contribution);
             }
         } catch (SQLException e) {
