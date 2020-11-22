@@ -41,6 +41,7 @@ public class EventPlanningController {
 
         try {
             this.tablesInitializer = new DBInitializer(dbConnectionProvider.getConnection());
+            tablesInitializer.createTables();
             this.partyRepository = new PartyRepository(dbConnectionProvider.getConnection());
             this.guestRepository = new GuestRepository(dbConnectionProvider.getConnection());
             this.participationRepository = new ParticipationRepository(dbConnectionProvider.getConnection());
