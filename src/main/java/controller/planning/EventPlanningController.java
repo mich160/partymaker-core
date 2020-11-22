@@ -56,15 +56,14 @@ public class EventPlanningController {
         createContributionsInDatabase(data.listOfContributionsGuestHas, participationsIDs);
     }
 
-    private Long createPartyInDatabase(String partyName, LocalDateTime partyDateTime) {
-        Long partyID;
+    private Long createPartyInDatabase(String eventName, LocalDateTime eventDate) {
         Party party = new Party();
         try {
-            party = partyRepository.create(new Party(partyName, partyDateTime));
+            party = partyRepository.create(new Party(eventName, eventDate));
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return partyID = party.getId();
+        return party.getId();
     }
 
     class Pair<ArrayList> {
