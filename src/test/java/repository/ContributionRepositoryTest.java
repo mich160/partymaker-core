@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.Month;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -57,6 +58,31 @@ public class ContributionRepositoryTest {
 
         assertThatThrownBy(() -> contributionRepository.create(null))
                 .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void testDeleteContribution() throws SQLException {
+        PartyRepository partyRepository = getPartyRepository();
+        LocalDateTime partyTime = LocalDateTime.of(2017, Month.FEBRUARY, 15, 12, 00, 00);
+        GuestRepository guestRepository = getGuestRepository();
+        ParticipationRepository participationRepository = getParticipationRepository();
+        ContributionRepository contributionRepository = getContributionRepository();
+
+        partyRepository.create(new Party("Party", partyTime));
+        guestRepository.create(new Guest("John"));
+        participationRepository.create(new Participation(1L, 1L));
+        contributionRepository.create(new Contribution("Monopoly", 1L));
+        contributionRepository.create(new Contribution("Twister", 1L));
+        contributionRepository.create(new Contribution("Chess", 1L));
+
+        List<Contribution> listBeforeDeletion = contributionRepository.findAll();
+        assertThat(listBeforeDeletion.size()).isEqualTo(3);
+
+        contributionRepository.delete(1);
+        contributionRepository.delete(2);
+        contributionRepository.delete(3);
+        List<Contribution> listAfterDeletion = contributionRepository.findAll();
+        assertThat(listAfterDeletion.size()).isEqualTo(0);
     }
 
     private PartyRepository getPartyRepository() throws SQLException {

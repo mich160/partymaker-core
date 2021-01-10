@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.Month;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,6 +29,8 @@ public class ParticipationRepositoryTest {
         sqlStatement.execute("ALTER TABLE guests ALTER COLUMN guest_id RESTART WITH 1");
         sqlStatement.execute("TRUNCATE TABLE participations");
         sqlStatement.execute("ALTER TABLE participations ALTER COLUMN participation_id RESTART WITH 1");
+        sqlStatement.execute("TRUNCATE TABLE contributions");
+        sqlStatement.execute("ALTER TABLE contributions ALTER COLUMN contribution_id RESTART WITH 1");
         sqlStatement.execute("SET REFERENTIAL_INTEGRITY TRUE");
     }
 
@@ -79,6 +82,29 @@ public class ParticipationRepositoryTest {
 
         assertThatThrownBy(() -> participationRepository.create(null))
                 .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void testDeleteParticipation() throws SQLException {
+        PartyRepository partyRepository = getPartyRepository();
+        LocalDateTime partyTime = LocalDateTime.of(2017, Month.FEBRUARY, 15, 12, 00, 00);
+        GuestRepository guestRepository = getGuestRepository();
+        ParticipationRepository participationRepository = getParticipationRepository();
+
+        partyRepository.create(new Party("Party 1", partyTime));
+        partyRepository.create(new Party("Party 2", partyTime));
+        guestRepository.create(new Guest("John"));
+        guestRepository.create(new Guest("Martin"));
+
+        participationRepository.create(new Participation(1L, 1L));
+        participationRepository.create(new Participation(2L, 2L));
+        List<Participation> listBeforeDeletion = participationRepository.findAll();
+        assertThat(listBeforeDeletion.size()).isEqualTo(2);
+
+        participationRepository.delete(1);
+        participationRepository.delete(2);
+        List<Participation> listAfterDeletion = participationRepository.findAll();
+        assertThat(listAfterDeletion.size()).isEqualTo(0);
     }
 
     private PartyRepository getPartyRepository() throws SQLException {
