@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -61,6 +62,47 @@ public class GuestRepositoryTest {
         guestRepository.delete(2);
         List<Guest> guestListAfterDeletion = guestRepository.findAll();
         assertThat(guestListAfterDeletion.size()).isEqualTo(0);
+    }
+
+    @Test
+    void testFindGuestV1() throws SQLException{
+        GuestRepository guestRepository = getGuestRepository();
+        Guest guestInDb = guestRepository.create(new Guest("John"));
+
+        Optional<Guest> foundGuest = guestRepository.find(guestInDb.getId());
+        assertThat(foundGuest.get().getName()).isEqualTo("John");
+    }
+
+    @Test
+    void testFindGuestV2() throws SQLException {
+        GuestRepository guestRepository = getGuestRepository();
+
+        guestRepository.create(new Guest("Guest with id equal 1"));
+        guestRepository.create(new Guest("Guest with id equal 2"));
+
+        assertThat(guestRepository.find(1L).get().getName()).isEqualTo("Guest with id equal 1");
+        assertThat(guestRepository.find(2L).get().getName()).isEqualTo("Guest with id equal 2");
+    }
+
+    @Test
+    void testFindGuestV3() throws SQLException {
+        GuestRepository guestRepository = getGuestRepository();
+
+        Guest guest = new Guest("Jan");
+        Guest createdGuest = guestRepository.create(guest);
+
+        Optional<Guest> foundGuest = guestRepository.find(createdGuest.getId());
+
+        assertThat(foundGuest).contains(createdGuest);
+    }
+
+    @Test
+    void testGuestNotFound() throws SQLException {
+        GuestRepository guestRepository = getGuestRepository();
+
+        Optional<Guest> notFound = guestRepository.find(2137L);
+
+        assertThat(notFound).isEmpty();
     }
 
     private GuestRepository getGuestRepository() throws SQLException {

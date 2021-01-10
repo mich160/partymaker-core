@@ -13,6 +13,7 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -105,6 +106,31 @@ public class ParticipationRepositoryTest {
         participationRepository.delete(2);
         List<Participation> listAfterDeletion = participationRepository.findAll();
         assertThat(listAfterDeletion.size()).isEqualTo(0);
+    }
+
+    @Test
+    void testFindParticipation() throws SQLException {
+        PartyRepository partyRepository = getPartyRepository();
+        LocalDateTime partyTime = LocalDateTime.of(2017, Month.FEBRUARY, 15, 12, 00, 00);
+        GuestRepository guestRepository = getGuestRepository();
+        ParticipationRepository participationRepository = getParticipationRepository();
+
+        partyRepository.create(new Party("Party", partyTime));
+        guestRepository.create(new Guest("John"));
+        participationRepository.create(new Participation(1L, 1L));
+
+        Optional<Participation> foundParticipation = participationRepository.find(1);
+        assertThat(foundParticipation.get().getGuestID()).isEqualTo(1L);
+        assertThat(foundParticipation.get().getPartyID()).isEqualTo(1L);
+    }
+
+    @Test
+    void testFoundNoParticipation() throws SQLException {
+        ParticipationRepository participationRepository = getParticipationRepository();
+
+        Optional<Participation> foundParticipation = participationRepository.find(2222L);
+
+        assertThat(foundParticipation).isEmpty();
     }
 
     private PartyRepository getPartyRepository() throws SQLException {

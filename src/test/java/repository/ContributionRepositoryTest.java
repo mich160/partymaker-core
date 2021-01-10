@@ -14,6 +14,7 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -83,6 +84,35 @@ public class ContributionRepositoryTest {
         contributionRepository.delete(3);
         List<Contribution> listAfterDeletion = contributionRepository.findAll();
         assertThat(listAfterDeletion.size()).isEqualTo(0);
+    }
+
+    @Test
+    void testFindContribution() throws SQLException {
+        PartyRepository partyRepository = getPartyRepository();
+        LocalDateTime partyTime = LocalDateTime.of(2017, Month.FEBRUARY, 15, 12, 00, 00);
+        GuestRepository guestRepository = getGuestRepository();
+        ParticipationRepository participationRepository = getParticipationRepository();
+        ContributionRepository contributionRepository = getContributionRepository();
+
+        partyRepository.create(new Party("Party", partyTime));
+        guestRepository.create(new Guest("John"));
+        participationRepository.create(new Participation(1L, 1L));
+        contributionRepository.create(new Contribution("Fifa", 1L));
+        contributionRepository.create(new Contribution("Red Dead Redemption 2", 1L));
+        contributionRepository.create(new Contribution("GTA V", 1L));
+
+        Optional<Contribution> foundContribution = contributionRepository.find(2);
+        assertThat(foundContribution.get().getName()).isEqualTo("Red Dead Redemption 2");
+        assertThat(foundContribution.get().getId()).isEqualTo(2L);
+    }
+
+    @Test
+    void testFoundNoContribution() throws SQLException {
+        ContributionRepository contributionRepository = getContributionRepository();
+
+        Optional<Contribution> foundContribution = contributionRepository.find(2222L);
+
+        assertThat(foundContribution).isEmpty();
     }
 
     private PartyRepository getPartyRepository() throws SQLException {

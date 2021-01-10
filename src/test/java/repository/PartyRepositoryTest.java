@@ -11,6 +11,7 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -60,6 +61,37 @@ public class PartyRepositoryTest {
         partyRepository.delete(Math.toIntExact(partyInDb.getId()));
         List<Party> partyListAfterDeletion = partyRepository.findAll();
         assertThat(partyListAfterDeletion.size()).isEqualTo(0);
+    }
+
+    @Test
+    void testFindPartyV1() throws SQLException {
+        PartyRepository partyRepository = getPartyRepository();
+        LocalDateTime partyTime = LocalDateTime.of(2017, Month.FEBRUARY, 15, 12, 00, 00);
+        Party partyinDb = partyRepository.create(new Party("Test party", partyTime));
+
+        Optional<Party> foundParty = partyRepository.find(partyinDb.getId());
+        assertThat(foundParty.get().getName()).isEqualTo("Test party");
+        assertThat(foundParty.get().getDate()).isEqualTo(partyTime);
+    }
+
+    @Test
+    void testFindPartyV2() throws SQLException {
+        PartyRepository partyRepository = getPartyRepository();
+        LocalDateTime partyTime = LocalDateTime.of(2017, Month.FEBRUARY, 15, 12, 00, 00);
+
+        partyRepository.create(new Party("Party with id equal 1", partyTime));
+        partyRepository.create(new Party("Party with id equal 2", partyTime));
+
+        assertThat(partyRepository.find(1L).get().getName()).isEqualTo("Party with id equal 1");
+        assertThat(partyRepository.find(2L).get().getName()).isEqualTo("Party with id equal 2");
+    }
+
+    @Test
+    void testPartyNotFound() throws SQLException{
+        PartyRepository partyRepository = getPartyRepository();
+
+        Optional<Party> foundParty = partyRepository.find(1234L);
+        assertThat(foundParty).isEmpty();
     }
 
     private PartyRepository getPartyRepository() throws SQLException {
