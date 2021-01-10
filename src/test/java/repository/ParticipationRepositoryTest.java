@@ -133,6 +133,26 @@ public class ParticipationRepositoryTest {
         assertThat(foundParticipation).isEmpty();
     }
 
+    @Test
+    void testFindAllParticipations() throws SQLException {
+        PartyRepository partyRepository = getPartyRepository();
+        LocalDateTime partyTime = LocalDateTime.of(2017, Month.FEBRUARY, 15, 12, 00, 00);
+        GuestRepository guestRepository = getGuestRepository();
+        ParticipationRepository participationRepository = getParticipationRepository();
+
+        partyRepository.create(new Party("Party", partyTime));
+        guestRepository.create(new Guest("John"));
+        for (int i = 1; i <= 10; i++) {
+            participationRepository.create(new Participation(1L, 1L));
+        }
+        List<Participation> shouldBe10ElementList = participationRepository.findAll();
+        assertThat(shouldBe10ElementList.size()).isEqualTo(10);
+
+        assertThat(shouldBe10ElementList)
+                .extracting(Participation::getId)
+                .containsExactly(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L);
+    }
+
     private PartyRepository getPartyRepository() throws SQLException {
         DBConnectionProvider dbConnectionProvider = new H2ConnectionProvider();
         return new PartyRepository(dbConnectionProvider.getConnection());

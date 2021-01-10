@@ -115,6 +115,30 @@ public class ContributionRepositoryTest {
         assertThat(foundContribution).isEmpty();
     }
 
+    @Test
+    void testFindAllContributions() throws SQLException {
+        PartyRepository partyRepository = getPartyRepository();
+        LocalDateTime partyTime = LocalDateTime.of(2017, Month.FEBRUARY, 15, 12, 00, 00);
+        GuestRepository guestRepository = getGuestRepository();
+        ParticipationRepository participationRepository = getParticipationRepository();
+        ContributionRepository contributionRepository = getContributionRepository();
+
+        partyRepository.create(new Party("Party", partyTime));
+        guestRepository.create(new Guest("John"));
+        participationRepository.create((new Participation(1L, 1L)));
+        for (int i = 1; i <= 10; i++) {
+            contributionRepository.create(new Contribution(String.format("Contribution nr: %d", i), 1L));
+        }
+        List<Contribution> shouldBe10ElementList = contributionRepository.findAll();
+        assertThat(shouldBe10ElementList.size()).isEqualTo(10);
+
+        assertThat(shouldBe10ElementList)
+                .extracting(Contribution::getName)
+                .containsExactly("Contribution nr: 1", "Contribution nr: 2", "Contribution nr: 3", "Contribution nr: 4",
+                        "Contribution nr: 5", "Contribution nr: 6", "Contribution nr: 7", "Contribution nr: 8",
+                        "Contribution nr: 9", "Contribution nr: 10");
+    }
+
     private PartyRepository getPartyRepository() throws SQLException {
         DBConnectionProvider dbConnectionProvider = new H2ConnectionProvider();
         return new PartyRepository(dbConnectionProvider.getConnection());

@@ -105,6 +105,31 @@ public class GuestRepositoryTest {
         assertThat(notFound).isEmpty();
     }
 
+    @Test
+    void testFindAllGuestsV1() throws SQLException {
+        GuestRepository guestRepository = getGuestRepository();
+
+        for (int i = 1; i <= 10; i++) {
+            guestRepository.create(new Guest(String.format("Guest nr %d", i)));
+        }
+
+        List<Guest> foundGuests = guestRepository.findAll();
+        assertThat(foundGuests.size()).isEqualTo(10);
+    }
+
+    @Test
+    void testFindAllGuestsV2() throws SQLException {
+        GuestRepository guestRepository = getGuestRepository();
+
+        guestRepository.create(new Guest("Maciej"));
+        guestRepository.create(new Guest("Jarek"));
+
+        List<Guest> foundGuests = guestRepository.findAll();
+        assertThat(foundGuests)
+                .extracting(Guest::getId)
+                .containsExactly(1L, 2L);
+    }
+
     private GuestRepository getGuestRepository() throws SQLException {
         Connection connection = new H2ConnectionProvider().getConnection();
         return new GuestRepository(connection);

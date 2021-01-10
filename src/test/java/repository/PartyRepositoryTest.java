@@ -94,6 +94,33 @@ public class PartyRepositoryTest {
         assertThat(foundParty).isEmpty();
     }
 
+    @Test
+    void testFindAllPartiesV1() throws SQLException {
+        PartyRepository partyRepository = getPartyRepository();
+        LocalDateTime partyTime = LocalDateTime.of(2017, Month.FEBRUARY, 15, 12, 00, 00);
+
+        for (int i = 1; i <= 10; i++) {
+            partyRepository.create(new Party(String.format("Test Party nr %d", i), partyTime));
+        }
+
+        List<Party> foundParties = partyRepository.findAll();
+        assertThat(foundParties.size()).isEqualTo(10);
+    }
+
+    @Test
+    void testFindAllPartiesV2() throws SQLException {
+        PartyRepository partyRepository = getPartyRepository();
+        LocalDateTime partyTime = LocalDateTime.of(2017, Month.FEBRUARY, 15, 12, 00, 00);
+
+        partyRepository.create(new Party("Party nr 1", partyTime));
+        partyRepository.create(new Party("Party nr 2", partyTime));
+
+        List<Party> foundParties = partyRepository.findAll();
+        assertThat(foundParties)
+                .extracting(Party::getId)
+                .containsExactly(1L, 2L);
+    }
+
     private PartyRepository getPartyRepository() throws SQLException {
         DBConnectionProvider dbConnectionProvider = new H2ConnectionProvider();
         return new PartyRepository(dbConnectionProvider.getConnection());
