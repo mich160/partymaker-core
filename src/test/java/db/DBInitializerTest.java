@@ -7,11 +7,11 @@ import java.sql.*;
 
 public class DBInitializerTest {
     @Test
-    public void checkCreatesUserTable() throws SQLException {
+    public void checkCreatesGuestTable() throws SQLException {
         Connection connection = createTables();
 
-        long id = insertInto(connection, "INSERT INTO users (name, surname) VALUES ('jan', 'kowalski')");
-        PreparedStatement selectRow = connection.prepareStatement("SELECT * FROM users WHERE user_id = ?");
+        long id = insertInto(connection, "INSERT INTO guests (name, surname) VALUES ('jan', 'kowalski')");
+        PreparedStatement selectRow = connection.prepareStatement("SELECT * FROM guests WHERE guest_id = ?");
         selectRow.setLong(1, id);
         ResultSet resultRow = selectRow.executeQuery();
         resultRow.next();
@@ -23,11 +23,11 @@ public class DBInitializerTest {
     }
 
     @Test
-    void checkCreatesThingsTable() throws SQLException {
+    void checkCreatesContributionsTable() throws SQLException {
         Connection connection = createTables();
 
-        long id = insertInto(connection, "INSERT INTO things (name) VALUES ('zebula')");
-        PreparedStatement selectRow = connection.prepareStatement("SELECT * FROM things WHERE thing_id = ?");
+        long id = insertInto(connection, "INSERT INTO contributions (name) VALUES ('zebula')");
+        PreparedStatement selectRow = connection.prepareStatement("SELECT * FROM contributions WHERE contribution_id = ?");
         selectRow.setLong(1, id);
         ResultSet resultRow = selectRow.executeQuery();
         resultRow.next();

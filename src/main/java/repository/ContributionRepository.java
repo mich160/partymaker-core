@@ -1,33 +1,32 @@
 package repository;
 
 import db.Repository;
-import model.Thing;
-import model.User;
+import model.Contribution;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class ThingRepository implements Repository<Thing> {
+public class ContributionRepository implements Repository<Contribution> {
     private final Connection connection;
 
-    public ThingRepository(Connection connection) {
+    public ContributionRepository(Connection connection) {
         this.connection = connection;
     }
 
     @Override
-    public Optional<Thing> find(long thingID) throws SQLException {
-        String SQL = "SELECT thing_id, name "
-                + "FROM things "
-                + "WHERE thing_id = ?";
+    public Optional<Contribution> find(long contributionID) throws SQLException {
+        String SQL = "SELECT contribution_id, name, participation_id "
+                + "FROM contributions "
+                + "WHERE contribution_id = ?";
 
-        Thing obj = null;
+        Contribution obj = null;
 
         try (PreparedStatement pstmt = connection.prepareStatement(SQL, ResultSet.TYPE_SCROLL_SENSITIVE,
                 ResultSet.CONCUR_UPDATABLE)) {
 
-            pstmt.setLong(1, thingID);
+            pstmt.setLong(1, contributionID);
             ResultSet rs = pstmt.executeQuery();
             if (rs.first()) {
                 obj = map(rs);
@@ -39,34 +38,35 @@ public class ThingRepository implements Repository<Thing> {
     }
 
     @Override
-    public List<Thing> findAll() throws SQLException {
-        String SQL = "SELECT thing_id, name FROM things";
+    public List<Contribution> findAll() throws SQLException {
+        String SQL = "SELECT contribution_id, name, participation_id FROM contributions";
 
-        List<Thing> things = new ArrayList<>();
+        List<Contribution> contributions = new ArrayList<>();
 
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(SQL)) {
             while (rs.next()) {
-                things.add(map(rs));
+                contributions.add(map(rs));
             }
         } catch (SQLException ex) {
             throw new SQLException();
         }
-        return things;
+        return contributions;
     }
 
     @Override
-    public Thing create(Thing obj) throws SQLException {
+    public Contribution create(Contribution obj) throws SQLException {
 
-        String SQL = "INSERT INTO things(name) "
-                + "VALUES(?)";
+        String SQL = "INSERT INTO contributions(name, participation_id) "
+                + "VALUES(?, ?)";
 
-        Thing objectToReturn = null;
+        Contribution objectToReturn = null;
 
         try {
             PreparedStatement pstmt = connection.prepareStatement(SQL, Statement.RETURN_GENERATED_KEYS);
 
             pstmt.setString(1, obj.getName());
+            pstmt.setLong(2, obj.getParticipation_id());
 
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
@@ -86,7 +86,7 @@ public class ThingRepository implements Repository<Thing> {
 
     @Override
     public int delete(int id) throws SQLException {
-        String SQL = "DELETE FROM things WHERE thing_id = ?";
+        String SQL = "DELETE FROM contributions WHERE contribution_id = ?";
 
         int affectedrows = 0;
 
@@ -102,10 +102,12 @@ public class ThingRepository implements Repository<Thing> {
         return affectedrows;
     }
 
-    private static Thing map(ResultSet rs) throws SQLException {
-        Thing obj = new Thing();
+    private static Contribution map(ResultSet rs) throws SQLException {
+        Contribution obj = new Contribution();
 
+        obj.setId(rs.getLong("contribution_id"));
         obj.setName(rs.getString("name"));
+        obj.setParticipation_id(rs.getLong("participation_id"));
         return obj;
     }
 }
