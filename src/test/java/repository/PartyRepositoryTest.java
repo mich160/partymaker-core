@@ -3,6 +3,7 @@ package repository;
 import db.DBConnectionProvider;
 import db.H2ConnectionProvider;
 import model.Party;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +20,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class PartyRepositoryTest {
     @BeforeEach
     public void cleanUpPartiesTable() throws SQLException {
+        DBConnectionProvider dbConnectionProvider = new H2ConnectionProvider();
+        Statement sqlStatement = dbConnectionProvider.getConnection().createStatement();
+        sqlStatement.execute("SET REFERENTIAL_INTEGRITY FALSE");
+        sqlStatement.execute("TRUNCATE TABLE parties");
+        sqlStatement.execute("ALTER TABLE parties ALTER COLUMN party_id RESTART WITH 1");
+        sqlStatement.execute("SET REFERENTIAL_INTEGRITY TRUE");
+    }
+
+    @AfterEach
+    public void cleanUpPartiesTableAfterTest() throws SQLException {
         DBConnectionProvider dbConnectionProvider = new H2ConnectionProvider();
         Statement sqlStatement = dbConnectionProvider.getConnection().createStatement();
         sqlStatement.execute("SET REFERENTIAL_INTEGRITY FALSE");

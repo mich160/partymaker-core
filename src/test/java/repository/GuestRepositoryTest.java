@@ -3,6 +3,7 @@ package repository;
 import db.DBConnectionProvider;
 import db.H2ConnectionProvider;
 import model.Guest;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,14 +18,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class GuestRepositoryTest {
     @BeforeEach
-    void cleanUpGuestsTable() throws SQLException {
+    void cleanUpGuestsTable() throws SQLException{
         DBConnectionProvider dbConnectionProvider = new H2ConnectionProvider();
         Statement sqlStatement = dbConnectionProvider.getConnection().createStatement();
         sqlStatement.execute("SET REFERENTIAL_INTEGRITY FALSE");
         sqlStatement.execute("TRUNCATE TABLE guests");
         sqlStatement.execute("ALTER TABLE guests ALTER COLUMN guest_id RESTART WITH 1");
-        sqlStatement.execute("TRUNCATE TABLE participations");
-        sqlStatement.execute("ALTER TABLE participations ALTER COLUMN participation_id RESTART WITH 1");
+        sqlStatement.execute("SET REFERENTIAL_INTEGRITY TRUE");
+    }
+
+    @AfterEach
+    void cleanUpGuestsTableAfterTest() throws SQLException{
+        DBConnectionProvider dbConnectionProvider = new H2ConnectionProvider();
+        Statement sqlStatement = dbConnectionProvider.getConnection().createStatement();
+        sqlStatement.execute("SET REFERENTIAL_INTEGRITY FALSE");
+        sqlStatement.execute("TRUNCATE TABLE guests");
+        sqlStatement.execute("ALTER TABLE guests ALTER COLUMN guest_id RESTART WITH 1");
         sqlStatement.execute("SET REFERENTIAL_INTEGRITY TRUE");
     }
 
