@@ -10,16 +10,14 @@ public class DBInitializerTest {
     public void checkCreatesGuestTable() throws SQLException {
         Connection connection = createTables();
 
-        long id = insertInto(connection, "INSERT INTO guests (name, surname) VALUES ('jan', 'kowalski')");
+        long id = insertInto(connection, "INSERT INTO guests (name) VALUES ('jan')");
         PreparedStatement selectRow = connection.prepareStatement("SELECT * FROM guests WHERE guest_id = ?");
         selectRow.setLong(1, id);
         ResultSet resultRow = selectRow.executeQuery();
         resultRow.next();
         String name = resultRow.getString(2);
-        String surname = resultRow.getString(3);
 
         Assert.assertEquals(name, "jan");
-        Assert.assertEquals(surname, "kowalski");
     }
 
     @Test
